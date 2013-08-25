@@ -9,4 +9,11 @@ R package for 'Quantile Regression in the Presence of Monotone Missingness with 
 
 # Bug #
 
+# TODO #
+
+- [ ] Hessian matrix
+- [ ] Plot and diagnostic
+- [ ] Bayesian method
+- [ ] function with any dimension
+
 # Thanks #

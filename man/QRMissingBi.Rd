@@ -1,5 +1,6 @@
 \name{QRMissingBi}
 \alias{coef.QRMissingBi}
+\alias{plot.QRMissingBi}
 \alias{print.QRMissingBi}
 \alias{QRMissingBi}
 \alias{summary.QRMissingBi}
@@ -14,6 +15,8 @@
   \method{print}{QRMissingBi} (mod, ...)
 
   \method{summary}{QRMissingBi} (mod, ...)
+
+  \method{plot}{QRMissingBi} (mod, ...)
 }
 \arguments{
   \item{y}{[n, 2] response.}
@@ -52,6 +55,9 @@
 \description{
   Function for quantile regression in the presence of
   monotone missingness for bivariate case
+
+  Plot the fitted residuals to check the normal assumption
+  for goodness of fit
 }
 \details{
   Fit a quantile regression for bivariate responses. For

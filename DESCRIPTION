@@ -1,5 +1,5 @@
 Package: qrmissing
-Version: 0.0-1
+Version: 0.1-1
 Date: 2013-08-24
 Title: Quantile Regression in the Presence of Monotone Missingness with
     Sensitivity Analysis
@@ -12,9 +12,12 @@ Maintainer: Minzhao Liu <liuminzhao@ufl.edu>
 Depends:
     R (>= 1.8.0),
     minqa,
-    quantreg
+    quantreg,
+    numDeriv,
+    rootSolve
 Description: NA
 License: NA
 Keyword: NA
 Collate:
     'QRMissingBi.R'
+    'QRMissingBiPure.R'

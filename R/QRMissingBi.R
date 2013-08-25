@@ -60,7 +60,7 @@ QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
   if (method %in% optim_method) {
     mod <- optim(param, nll, method = method, control = control)
   } else {
-    minqa_control <- list(iprint = control$trace)
+    minqa_control <- list(iprint = control$trace, maxfun = 20*control$maxit)
     if (method == 'bobyqa'){
       mod <- bobyqa(param, nll, control=minqa_control)
     } else if (method == 'uobyqa') {
@@ -69,6 +69,9 @@ QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
       mod <- newuoa(param, nll, control=minqa_control)
     }
   }
+
+  ## residuals
+  res <- residuals(mod$par, y, X, R, tau, sp)
 
   ## Hessian matrix and grad
   if (hess) {
@@ -93,7 +96,7 @@ QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
   mod$method <- method
   mod$Hessian <- Hessian
   mod$se <- se
-##   mod$d <- d
+  mod$res <- res
 
   class(mod) <- "QRMissingBi"
 
@@ -147,6 +150,25 @@ summary.QRMissingBi <- function(mod, ...){
   cat('Standard error: \n')
   print(mod$se)
 
+}
+
+##' A goodness of fit check
+##'
+##' Plot the fitted residuals to check the normal assumption for
+##' goodness of fit
+##'
+##' @rdname QRMissingBi
+##' @method plot QRMissingBi
+##' @S3method plot QRMissingBi
+plot.QRMissingBi <- function(mod, ...){
+  R <- mod$R
+  res <- mod$res
+  tau <- mod$tau
+  par(mfrow = c(1, 2))
+  qqnorm(res[, 1], main = bquote(paste('Normal Q-Q Plot for ', Y[1], ' of quantile ', tau == .(tau))))
+  qqline(res[, 1])
+  qqnorm(res[R == 1, 1], main = bquote(paste('Normal Q-Q Plot for ', Y[2], ' of quantile ', tau == .(tau))))
+  qqline(res[R == 1, 1])
 }
 
 ##' Observed Negative Log Likelihood
@@ -208,4 +230,66 @@ ll2 <- function(param, y, X, R, tau, sp){
   ans <- ll11 + ll10 + ll21 + num*log(p) + (n - num)*log(1 - p)
 
   return(-ans)
+}
+
+##' Residuals for fitted value
+##'
+##' Residuals for fitted value after pluging MLE
+##'
+##' @title residuals for fitted value
+##' @param param
+##' @param y responses
+##' @param X covariates matrix
+##' @param R missingnes indicator
+##' @param tau quantile of interest
+##' @param sp sensitivity parameters
+##' @return a n by 2 matrix of residuals
+##' @author Minzhao Liu
+residuals <- function(param, y, X, R, tau, sp){
+  n <- dim(y)[1]
+  xdim <- dim(X)[2]
+  num <- sum(R)
+
+  gamma1 <- param[1:xdim]
+  beta1 <- param[(xdim + 1):(2*xdim)]
+  sigma1 <- c(exp(param[3*xdim + 3]), exp(param[3*xdim + 4]))
+  gamma2 <- param[(2*xdim + 1):(3*xdim)]
+  beta2sp <- sp[1:xdim] # SP for R = 0
+  sigma21 <- exp(param[3*xdim + 5])
+  sigma21sp <- exp(sp[xdim + 2])  # SP for R = 0
+  betay <- param[3*xdim + 1] # for R = 1
+  betaysp <- sp[xdim + 1] # SP for R = 0
+  p <- exp(param[3*xdim + 2])/(1 + exp(param[3*xdim + 2]))
+
+  d <- matrix(0, n, 2)
+  d <- .Fortran("mydelta2",
+                x = as.double(X),
+                gamma1 = as.double(gamma1),
+                beta1 = as.double(beta1),
+                sigma1 = as.double(sigma1),
+                gamma2 = as.double(gamma2),
+                beta2sp = as.double(beta2sp),
+                sigma21 = as.double(sigma21),
+                sigma21sp = as.double(sigma21sp),
+                betay = as.double(betay),
+                betaysp = as.double(betaysp),
+                p = as.double(p),
+                tau = as.double(tau),
+                n = as.integer(n),
+                xdim = as.integer(xdim),
+                delta = as.double(d))$delta
+
+  d <- matrix(d, n, 2)
+
+  lp1 <- X %*% beta1
+  mu11 <- d[, 1] + lp1
+  mu10 <- d[, 1] - lp1
+  mu21 <- d[, 2] + betay * y[, 1]
+
+  res <- matrix(NA, n, 2)
+  res[R == 1, 1] <- (y[R==1, 1] - mu11[R == 1])/sigma1[1]
+  res[R == 0, 1] <- (y[R==0, 1] - mu10[R == 0])/sigma1[2]
+  res[R == 1, 2] <- (y[R==1, 2] - mu21[R == 1])/sigma21
+
+  return(res)
 }
