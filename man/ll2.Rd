@@ -1,6 +1,6 @@
 \name{ll2}
 \alias{ll2}
-\title{observednegative log likelihood}
+\title{observed negative log likelihood}
 \usage{
   ll2(param, y, X, R, tau, sp)
 }
@@ -21,10 +21,10 @@
   negative log likelihood
 }
 \description{
-  .. content for \description{} (no empty lines) ..
+  Observed Negative Log Likelihood
 }
 \details{
-  .. content for \details{} ..
+  Give the observed nagetive log likelihood
 }
 \author{
   Minzhao Liu

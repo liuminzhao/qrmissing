@@ -1,10 +1,19 @@
 \name{QRMissingBi}
+\alias{coef.QRMissingBi}
+\alias{print.QRMissingBi}
 \alias{QRMissingBi}
+\alias{summary.QRMissingBi}
 \title{Quantile Regression in the Presence of Monotone Missingness; Bivariates case}
 \usage{
   QRMissingBi(y, R, X, tau = 0.5, sp = NULL, init = NULL,
     method = "uobyqa",
     control = list(maxit = 1000, trace = 0), hess = FALSE)
+
+  \method{coef}{QRMissingBi} (mod, ...)
+
+  \method{print}{QRMissingBi} (mod, ...)
+
+  \method{summary}{QRMissingBi} (mod, ...)
 }
 \arguments{
   \item{y}{[n, 2] response.}
@@ -25,7 +34,7 @@
 
   \item{init}{: initial value for all parameters. The
   default are estimates by \code{rq} function from
-  \package{quantreg} and sample proportion of missingness.}
+  \pkg{quantreg} and sample proportion of missingness.}
 
   \item{method}{: optimization method, default: 'uobyqa'
   from minqa. Other allowed methods are 'BFGS',

@@ -1,2 +1,5 @@
 export(QRMissingBi)
+S3method(coef,QRMissingBi)
+S3method(print,QRMissingBi)
+S3method(summary,QRMissingBi)
 useDynLib(qrmissing)

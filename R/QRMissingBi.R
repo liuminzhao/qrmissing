@@ -1,14 +1,3 @@
-##' .. content for \description{} (no empty lines) ..
-##'
-##' .. content for \details{} ..
-##' @title
-##' @param y
-##' @param ...
-##' @return
-##' @author Minzhao Liu
-##' @export
-QRMissingBi <- function(y, ...) UseMethod("QRMissingBi")
-
 ##' Function for quantile regression in the presence of monotone
 ##' missingness for bivariate case
 ##'
@@ -27,7 +16,7 @@ QRMissingBi <- function(y, ...) UseMethod("QRMissingBi")
 ##' \eqn{\beta_2} and \code{sp[p+1]} is the sensitivity parameter for
 ##' \eqn{\beta_y^(0)}, \code{sp[p+2]} is the one for \eqn{\sigma_2^(0)}
 ##' @param init : initial value for all parameters. The default are
-##' estimates by \code{rq} function from \package{quantreg} and sample
+##' estimates by \code{rq} function from \pkg{quantreg} and sample
 ##' proportion of missingness.
 ##' @param method : optimization method, default: 'uobyqa' from minqa. Other allowed methods are 'BFGS', 'Nelder-Mead', BFGS', 'CG', 'L-BFGS-B', 'Nelder-Mead')
 ##' @param control : optimzation control option
@@ -36,10 +25,10 @@ QRMissingBi <- function(y, ...) UseMethod("QRMissingBi")
 ##' generic functions are available.
 ##' @author Minzhao Liu
 ##' @export
-QRMissingBi.default <- function(y, R, X, tau = 0.5, sp = NULL,
-                                init = NULL, method = 'uobyqa',
-                                control = list(maxit = 1000,
-                                  trace = 0), hess = FALSE){
+QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
+                        init = NULL, method = 'uobyqa',
+                        control = list(maxit = 1000,
+                          trace = 0), hess = FALSE){
   ## data
   n <- dim(y)[1]
   num <- sum(R)
@@ -112,15 +101,9 @@ QRMissingBi.default <- function(y, R, X, tau = 0.5, sp = NULL,
 
 }
 
-##' .. content for \description{} (no empty lines) ..
-##'
-##' .. content for \details{} ..
-##' @title
-##' @param mod
-##' @param ...
-##' @return
-##' @author Minzhao Liu
-##' @export
+##' @rdname QRMissingBi
+##' @method coef QRMissingBi
+##' @S3method coef QRMissingBi
 coef.QRMissingBi <- function(mod, ...){
   q <- mod$xdim
   param <- mod$par[c(1:q, (2*q + 1):(3*q))]
@@ -129,11 +112,17 @@ coef.QRMissingBi <- function(mod, ...){
   return(coef)
 }
 
+##' @rdname QRMissingBi
+##' @method print QRMissingBi
+##' @S3method print QRMissingBi
 print.QRMissingBi <- function(mod, ...){
   cat('Coefficients: \n')
   print(coef(mod))
 }
 
+##' @rdname QRMissingBi
+##' @method summary QRMissingBi
+##' @S3method summary QRMissingBi
 summary.QRMissingBi <- function(mod, ...){
   n <- mod$n
   R <- mod$R
@@ -160,10 +149,10 @@ summary.QRMissingBi <- function(mod, ...){
 
 }
 
-##' .. content for \description{} (no empty lines) ..
+##' Observed Negative Log Likelihood
 ##'
-##' .. content for \details{} ..
-##' @title observednegative log likelihood
+##' Give the observed nagetive log likelihood
+##' @title observed negative log likelihood
 ##' @param param
 ##' @param y
 ##' @param X
