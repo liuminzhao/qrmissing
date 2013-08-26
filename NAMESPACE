@@ -1,5 +1,6 @@
 export(QRMissingBi)
 export(QRMissingBiPure)
+export(ToursMNAR)
 S3method(coef,QRMissingBi)
 S3method(plot,QRMissingBi)
 S3method(print,QRMissingBi)

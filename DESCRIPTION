@@ -21,3 +21,4 @@ Keyword: NA
 Collate:
     'QRMissingBi.R'
     'QRMissingBiPure.R'
+    'ToursMNAR.R'
