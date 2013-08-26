@@ -135,7 +135,7 @@ ll2toursmnar <- function(param, y, X, R, tau, sp){
   p <- exp(param[3*xdim + 2])/(1 + exp(param[3*xdim + 2]))
 
   d <- matrix(0, n, 2)
-  d <- .Fortran("mydelta2",
+  d <- .Fortran("mydelta2bise",
                 x = as.double(X),
                 gamma1 = as.double(gamma1),
                 beta1 = as.double(beta1),
@@ -196,7 +196,7 @@ residualstoursmnar <- function(param, y, X, R, tau, sp){
   p <- exp(param[3*xdim + 2])/(1 + exp(param[3*xdim + 2]))
 
   d <- matrix(0, n, 2)
-  d <- .Fortran("mydelta2",
+  d <- .Fortran("mydelta2bise",
                 x = as.double(X),
                 gamma1 = as.double(gamma1),
                 beta1 = as.double(beta1),

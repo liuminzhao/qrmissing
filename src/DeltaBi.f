@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 08/22/2013 16:34:04>
+C$$$  Time-stamp: <liuminzhao 08/26/2013 12:34:27>
 c$$$  2013/08/22 Bayesian MCMC for QRMissing Bivariate single normal
 c$$$
 c===========================================================
@@ -26,6 +26,76 @@ CCCCCCCCCCCCCCCCCCCC
 
       return
       end
+
+
+C------------------------------
+C     myzero1: bisection method to solve for delta1
+C------------------------------
+      real*8 function myzero1(gamma1,beta1, sigma1, p,tau, x, xdim)
+      integer xdim, i
+      real*8 delta1, gamma1(xdim), beta1(xdim), sigma1(2), p,
+     &     tau, x(xdim)
+      real*8 targeteqn1f
+      real*8 myzero1
+
+      real*8 a, b, fa, fb, c, fc, tol, prevstep, newstep
+      logical success
+      real*8 dx, t1, cb, t2, pp, q
+      integer maxit
+
+      tol = 0.00001
+      maxit = 40
+
+      a = -100
+      b = 100
+
+      fa = targeteqn1f(a, gamma1, beta1, sigma1, p, tau, x, xdim)
+      fb = targeteqn1f(b, gamma1, beta1, sigma1, p, tau, x, xdim)
+      c = a
+      fc = fa
+
+C     First test if root is an endpoint
+      if (abs(fa) .le. tol) then
+         myzero1 = a
+         return
+      end if
+
+      if (abs(fb) .le. tol) then
+         myzero1 = b
+         return
+      end if
+
+      if (fa * fb .ge. 0) print*, 'root is not included.'
+
+      do while (maxit .gt. 0)
+         c = (a + b)/2.d0
+         if (abs(a - b) .le. tol) then
+            myzero1 = c
+            return
+         end if
+
+         fc = targeteqn1f(c, gamma1, beta1, sigma1, p, tau, x, xdim)
+
+         if (abs(fc) .le. tol) then
+            myzero1 = c
+            return
+         end if
+
+         if (fa * fc .gt. 0) then
+            a = c
+            fa = fc
+         else
+            b = c
+            fb = fc
+         end if
+
+         maxit = maxit - 1
+      end do
+
+      myzero1 = c
+      return
+      end
+
 
 
 C------------------------------
@@ -192,6 +262,82 @@ c$$$      print*, p1, p2, p, targeteqn2f
       end
 
 C------------------------------
+C     biscetion method to solve for Delta2
+C------------------------------
+
+      real*8 function myzero2(gamma1, beta1, sigma1,
+     &     gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
+     &     p, tau, x, xdim, d1)
+      integer xdim, i
+      real*8 d2, gamma1(xdim), beta1(xdim), sigma1(2)
+      real*8 gamma2(xdim), beta2sp(xdim), sigma21, sigma20, sigma21sp
+      real*8 betay, betay0, betaysp, p, tau, x(xdim), d1
+      real*8 p1, p2, pnrm
+      real*8 a, b, fa, fb, c, fc, tol, prevstep, newstep
+      real*8 targeteqn2f
+      logical success
+      real*8 dx, t1, cb, t2, pp, q
+      integer maxit
+
+      tol = 0.00001
+      maxit = 40
+
+      a = -100
+      b = 100
+
+      fa = targeteqn2f(a, d1, gamma1, beta1, sigma1,
+     &     gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
+     &     p, tau, x, xdim)
+      fb = targeteqn2f(b, d1, gamma1, beta1, sigma1,
+     &     gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
+     &     p, tau, x, xdim)
+
+C     First test if root is an endpoint
+      if (fa .eq. 0.d0) then
+         myzero2 = a
+         return
+      end if
+
+      if (fb .eq. 0.d0) then
+         myzero2 = b
+         return
+      end if
+
+      if (fa * fb .ge. 0) print*, 'root is not included.'
+
+      do while (maxit .gt. 0)
+         c = (a + b)/2.d0
+         if (abs(a - b) .le. tol) then
+            myzero2 = c
+            return
+         end if
+
+         fc = targeteqn2f(c, d1, gamma1, beta1, sigma1,
+     &     gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
+     &     p, tau, x, xdim)
+
+         if (abs(fc) .le. tol) then
+            myzero2 = c
+            return
+         end if
+
+         if (fa * fc .gt. 0) then
+            a = c
+            fa = fc
+         else
+            b = c
+            fb = fc
+         end if
+
+         maxit = maxit - 1
+      end do
+
+      myzero2 = c
+      return
+      end
+
+
+C------------------------------
 C     Solver for Delta2
 C------------------------------
 
@@ -320,14 +466,36 @@ C------------------------------
       real*8 myzeroin2, myzeroin1
       integer i
 
-c$$$      print*, gamma1, beta1, sigma1, gamma2, beta2sp, sigma21
-c$$$      print*, sigma21sp, betay, betaysp, p, tau, n, xdim
-
       do i = 1, n
-c$$$         print*, x(i, :), delta(i, :)
          delta(i,1) = myzeroin1(gamma1,beta1,sigma1, p,
      &        tau, x(i,:), xdim)
          delta(i,2) = myzeroin2(gamma1, beta1, sigma1,
+     &        gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
+     &        p, tau, x(i,:), xdim, delta(i, 1))
+      end do
+      return
+      end
+
+C------------------------------
+C     mydelta2bise : bisection method to solve delta1, delta2 for all X
+C------------------------------
+
+      SUBROUTINE mydelta2bise(x, gamma1, beta1, sigma1,
+     &     gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
+     &     p, tau, n, xdim, delta)
+      implicit none
+      integer xdim, n
+      real*8 x(n, xdim), gamma1(xdim), beta1(xdim),sigma1(2)
+      real*8 gamma2(xdim), beta2sp(xdim), sigma21, sigma21sp
+      real*8 betay, betaysp
+      real*8 p, tau, delta(n, 2)
+      real*8 myzero2, myzero1
+      integer i
+
+      do i = 1, n
+         delta(i,1) = myzero1(gamma1,beta1,sigma1, p,
+     &        tau, x(i,:), xdim)
+         delta(i,2) = myzero2(gamma1, beta1, sigma1,
      &        gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
      &        p, tau, x(i,:), xdim, delta(i, 1))
       end do
