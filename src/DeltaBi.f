@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 08/26/2013 12:34:27>
+C$$$  Time-stamp: <liuminzhao 08/27/2013 17:45:41>
 c$$$  2013/08/22 Bayesian MCMC for QRMissing Bivariate single normal
 c$$$
 c===========================================================
@@ -69,10 +69,6 @@ C     First test if root is an endpoint
 
       do while (maxit .gt. 0)
          c = (a + b)/2.d0
-         if (abs(a - b) .le. tol) then
-            myzero1 = c
-            return
-         end if
 
          fc = targeteqn1f(c, gamma1, beta1, sigma1, p, tau, x, xdim)
 
@@ -91,6 +87,8 @@ C     First test if root is an endpoint
 
          maxit = maxit - 1
       end do
+
+      print*, 'maximum iteration for bisection reached'
 
       myzero1 = c
       return
@@ -113,9 +111,6 @@ C------------------------------
       logical success
       real*8 dx, t1, cb, t2, pp, q
       integer maxit
-
-c$$$      print*, gamma1, beta1, sigma1
-c$$$      print*, p, tau, xdim
 
       tol = 0.00001
       maxit = 40
@@ -211,10 +206,6 @@ C------------------------------
       real*8 myzeroin1
       real*8 p1, p2, pnrm
 
-c$$$      print*, gamma1, beta1, sigma1, gamma2, beta2sp, sigma21
-c$$$      print*, sigma21sp, betay, betaysp, p, tau, xdim
-c$$$      print*, d1, 'x', x
-
       sigma20 = sigma21 * exp(sigma21sp)
       betay0 = betay + betaysp
 
@@ -255,8 +246,6 @@ c$$$      print*, d1, 'x', x
       end if
 
       targeteqn2f = tau - p * p1 - (1 - p) * p2
-
-c$$$      print*, p1, p2, p, targeteqn2f
 
       return
       end
@@ -307,10 +296,6 @@ C     First test if root is an endpoint
 
       do while (maxit .gt. 0)
          c = (a + b)/2.d0
-         if (abs(a - b) .le. tol) then
-            myzero2 = c
-            return
-         end if
 
          fc = targeteqn2f(c, d1, gamma1, beta1, sigma1,
      &     gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
@@ -331,6 +316,8 @@ C     First test if root is an endpoint
 
          maxit = maxit - 1
       end do
+
+      print*, 'maximum iteration for bisection 2 reached'
 
       myzero2 = c
       return
@@ -355,12 +342,6 @@ C------------------------------
       real*8 dx, t1, cb, t2, pp, q
       integer maxit
 
-c$$$      print*, gamma1, beta1, sigma1, gamma2, beta2sp, sigma21
-c$$$      print*, sigma21sp, betay, betaysp, p, tau, xdim
-c$$$
-c$$$      print*, d1
-c$$$      myzeroin2 = d1
-
       tol = 0.00001
       maxit = 40
 
@@ -376,13 +357,9 @@ c$$$      myzeroin2 = d1
       c = a
       fc = fa
 
-c$$$      print*, fa, fb
-
 C     First test if root is an endpoint
       if (fa .eq. 0.d0) then
          myzeroin2 = a
-c$$$         print*, myzeroin2
-c$$$         stop 0
          return
       end if
 
