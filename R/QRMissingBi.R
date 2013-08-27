@@ -195,7 +195,7 @@ ll2 <- function(param, y, X, R, tau, sp){
   gamma2 <- param[(2*xdim + 1):(3*xdim)]
   beta2sp <- sp[1:xdim] # SP for R = 0
   sigma21 <- exp(param[3*xdim + 5])
-  sigma21sp <- exp(sp[xdim + 2])  # SP for R = 0
+  sigma21sp <- sp[xdim + 2]  # SP for R = 0
   betay <- param[3*xdim + 1] # for R = 1
   betaysp <- sp[xdim + 1] # SP for R = 0
   p <- exp(param[3*xdim + 2])/(1 + exp(param[3*xdim + 2]))
@@ -256,7 +256,7 @@ residuals <- function(param, y, X, R, tau, sp){
   gamma2 <- param[(2*xdim + 1):(3*xdim)]
   beta2sp <- sp[1:xdim] # SP for R = 0
   sigma21 <- exp(param[3*xdim + 5])
-  sigma21sp <- exp(sp[xdim + 2])  # SP for R = 0
+  sigma21sp <- sp[xdim + 2]  # SP for R = 0
   betay <- param[3*xdim + 1] # for R = 1
   betaysp <- sp[xdim + 1] # SP for R = 0
   p <- exp(param[3*xdim + 2])/(1 + exp(param[3*xdim + 2]))
