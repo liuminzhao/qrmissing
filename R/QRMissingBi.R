@@ -164,7 +164,6 @@ plot.QRMissingBi <- function(mod, ...){
   R <- mod$R
   res <- mod$res
   tau <- mod$tau
-  par(mfrow = c(1, 2))
   qqnorm(res[, 1], main = bquote(paste('Normal Q-Q Plot for ', Y[1], ' of quantile ', tau == .(tau))))
   qqline(res[, 1])
   qqnorm(res[R == 1, 1], main = bquote(paste('Normal Q-Q Plot for ', Y[2], ' of quantile ', tau == .(tau))))
