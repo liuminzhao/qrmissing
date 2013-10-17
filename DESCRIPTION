@@ -16,8 +16,8 @@ Depends:
     numDeriv,
     rootSolve
 Description: NA
-License: NA
-Keyword: NA
+License: GPL (>= 2)
+Keyword: quantile regression
 Collate:
     'QRMissingBi.R'
     'QRMissingBiPure.R'

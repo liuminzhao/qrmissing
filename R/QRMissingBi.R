@@ -23,7 +23,7 @@
 ##' @param hess : whether to calculate hessian matrix, default is FALSE
 ##' @return An object of class \code{QRMissingBi}, for which many
 ##' generic functions are available.
-##' @author Minzhao Liu
+##' @author Minzhao Liu, Mike Daniels
 ##' @export
 QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
                         init = NULL, method = 'uobyqa',
