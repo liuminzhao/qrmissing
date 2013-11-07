@@ -64,6 +64,6 @@
   more details, please check the paper.
 }
 \author{
-  Minzhao Liu
+  Minzhao Liu, Mike Daniels
 }
 

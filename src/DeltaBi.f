@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 08/27/2013 17:45:41>
+C$$$  Time-stamp: <liuminzhao 11/07/2013 14:32:23>
 c$$$  2013/08/22 Bayesian MCMC for QRMissing Bivariate single normal
 c$$$
 c===========================================================
@@ -475,6 +475,26 @@ C------------------------------
          delta(i,2) = myzero2(gamma1, beta1, sigma1,
      &        gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
      &        p, tau, x(i,:), xdim, delta(i, 1))
+      end do
+      return
+      end
+
+
+C------------------------------
+C     mydelta1bise: bisection method to solve delta 1 for single normal and univariate
+C------------------------------
+      SUBROUTINE mydelta1bise(x, gamma, beta, sigma,
+     &     p, tau, n, xdim, delta)
+      implicit none
+      integer xdim, n
+      real*8 x(n, xdim), gamma(xdim), beta(xdim),sigma(2)
+      real*8 p, tau, delta(n)
+      real*8 myzero1
+      integer i
+
+      do i = 1, n
+         delta(i) = myzero1(gamma,beta,sigma, p,
+     &        tau, x(i,:), xdim)
       end do
       return
       end
