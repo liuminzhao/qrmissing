@@ -77,11 +77,9 @@ QRMissingUniBayes <- function(y, R, X, tau = 0.5,
 
     ## GAMMA
     att <- att + 1
-    gammac <- gamma
     gammac <- rnorm(xdim, gamma, tunegamma)
 
     ## BETA
-    betac <- beta
     betac <- rnorm(xdim, beta, tunebeta)
 
     ## P
