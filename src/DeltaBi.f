@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 11/07/2013 14:32:23>
+C$$$  Time-stamp: <liuminzhao 11/13/2013 11:05:23>
 c$$$  2013/08/22 Bayesian MCMC for QRMissing Bivariate single normal
 c$$$
 c===========================================================
@@ -65,7 +65,7 @@ C     First test if root is an endpoint
          return
       end if
 
-      if (fa * fb .ge. 0) print*, 'root is not included.'
+      if (fa * fb .ge. 0) print*, 'root is not included solving D1.'
 
       do while (maxit .gt. 0)
          c = (a + b)/2.d0
@@ -88,7 +88,7 @@ C     First test if root is an endpoint
          maxit = maxit - 1
       end do
 
-      print*, 'maximum iteration for bisection reached'
+      print*, 'maximum iteration for bisection reached solving D1'
 
       myzero1 = c
       return
@@ -292,7 +292,11 @@ C     First test if root is an endpoint
          return
       end if
 
-      if (fa * fb .ge. 0) print*, 'root is not included.'
+      if (fa * fb .ge. 0) then
+         print*, 'root is not included for D2.'
+         print*, fa, fb, d1, gamma1, beta1, sigma1, gamma2, beta2sp,
+     &        sigma21, sigma21sp, betay, betaysp, p, tau,x, xdim
+      end if
 
       do while (maxit .gt. 0)
          c = (a + b)/2.d0
@@ -317,7 +321,7 @@ C     First test if root is an endpoint
          maxit = maxit - 1
       end do
 
-      print*, 'maximum iteration for bisection 2 reached'
+      print*, 'maximum iteration for bisection reached for D2'
 
       myzero2 = c
       return
