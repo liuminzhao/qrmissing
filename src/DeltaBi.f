@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 11/13/2013 11:05:23>
+C$$$  Time-stamp: <liuminzhao 01/14/2014 10:46:51>
 c$$$  2013/08/22 Bayesian MCMC for QRMissing Bivariate single normal
 c$$$
 c===========================================================
@@ -499,6 +499,124 @@ C------------------------------
       do i = 1, n
          delta(i) = myzero1(gamma,beta,sigma, p,
      &        tau, x(i,:), xdim)
+      end do
+      return
+      end
+
+
+C------------------------------
+C     TARGET DELTA EQUATION for univariate  with mixture normals
+C------------------------------
+
+      real*8 function targetunimix(delta1,gamma1,beta1,
+     &     G, mu, sigma, omega1, omega0, p,tau,x,xdim)
+      integer xdim, i, G
+      real*8 delta1, gamma1(xdim), beta1(xdim), mu(G), sigma(G),
+     &     omega1(G), omega0(G), p, tau, x(xdim)
+      real*8 pnrm
+
+      real*8 quan, lp
+
+      quan = dot_product(gamma1, x)
+      lp = dot_product(beta1, x)
+
+      targetunimix = 0
+      do i = 1, G
+         targetunimix = targetunimix + p*omega1(i)*pnrm(quan-delta1
+     &        - lp - mu(i),0.d0,sigma(i),1,0) +
+     &     (1-p)*omega0(i)*pnrm(quan-delta1+lp-mu(i),0.d0,sigma(i),1,0)
+      end do
+      targetunimix = tau - targetunimix
+
+      return
+      end
+
+C------------------------------
+C     myzero1mix: bisection method to solve for delta1 for mixture normal
+C------------------------------
+      real*8 function myzero1mix(gamma1,beta1, G, mu, sigma,
+     &     omega1, omega0, p,tau, x, xdim)
+      integer xdim, i, G
+      real*8 delta1, gamma1(xdim), beta1(xdim), mu(G), sigma(G),
+     &     omega1(G), omega0(G), p, tau, x(xdim)
+      real*8 targetunimix
+      real*8 myzero1mix
+
+      real*8 a, b, fa, fb, c, fc, tol, prevstep, newstep
+      logical success
+      real*8 dx, t1, cb, t2, pp, q
+      integer maxit
+
+      tol = 0.00001
+      maxit = 40
+
+      a = -100
+      b = 100
+
+      fa = targetunimix(a,gamma1,beta1,
+     &     G, mu, sigma, omega1, omega0, p,tau,x,xdim)
+      fb = targetunimix(b,gamma1,beta1,
+     &     G, mu, sigma, omega1, omega0, p,tau,x,xdim)
+
+      c = a
+      fc = fa
+
+C     First test if root is an endpoint
+      if (abs(fa) .le. tol) then
+         myzero1 = a
+         return
+      end if
+
+      if (abs(fb) .le. tol) then
+         myzero1 = b
+         return
+      end if
+
+      if (fa * fb .ge. 0) print*, 'root is not included solving D1.'
+
+      do while (maxit .gt. 0)
+         c = (a + b)/2.d0
+
+         fc = targetunimix(c,gamma1,beta1,
+     &     G, mu, sigma, omega1, omega0, p,tau,x,xdim)
+
+         if (abs(fc) .le. tol) then
+            myzero1 = c
+            return
+         end if
+
+         if (fa * fc .gt. 0) then
+            a = c
+            fa = fc
+         else
+            b = c
+            fb = fc
+         end if
+
+         maxit = maxit - 1
+      end do
+
+      print*, 'maximum iteration for bisection reached solving D1 mix'
+
+      myzero1 = c
+      return
+      end
+
+C------------------------------
+C     mydelta1bisemix: bisection method to solve delta 1 for mix normal and univariate
+C------------------------------
+      SUBROUTINE mydelta1bisemix(x, gamma,beta, G, mu, sigma,
+     &     omega1, omega0, p,tau, n, xdim, delta)
+      implicit none
+      integer xdim, n, G
+      real*8 x(n, xdim), gamma(xdim), beta(xdim),sigma(G), mu(G)
+      real*8 p, tau, delta(n), omega1(G), omega0(G)
+      real*8 myzero1mix
+      integer i
+
+      do i = 1, n
+         delta(i) = myzero1mix(gamma,beta, G, mu, sigma,
+     &     omega1, omega0, p,tau, x(i,:), xdim)
       end do
       return
       end
