@@ -12,6 +12,12 @@
   \method{summary}{QRMissingUniBayes} (mod, ...)
 
   \method{plot}{QRMissingUniBayes} (mod, ...)
+
+  \method{coef}{QRMissingUniBayes} (mod, ...)
+
+  \method{summary}{QRMissingUniBayes} (mod, ...)
+
+  \method{plot}{QRMissingUniBayes} (mod, ...)
 }
 \arguments{
   \item{y}{}

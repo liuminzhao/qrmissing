@@ -24,3 +24,5 @@ Collate:
     'ToursMNAR.R'
     'QRMissingUniBayes.R'
     'QRMissingBiBayes.R'
+    'QRMissingUniBayesMix.R'
+    'QRMissingBiBayesMix.R'

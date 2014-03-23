@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 01/14/2014 10:46:51>
+C$$$  Time-stamp: <liuminzhao 01/22/2014 15:16:34>
 c$$$  2013/08/22 Bayesian MCMC for QRMissing Bivariate single normal
 c$$$
 c===========================================================
@@ -563,12 +563,12 @@ C------------------------------
 
 C     First test if root is an endpoint
       if (abs(fa) .le. tol) then
-         myzero1 = a
+         myzero1mix = a
          return
       end if
 
       if (abs(fb) .le. tol) then
-         myzero1 = b
+         myzero1mix = b
          return
       end if
 
@@ -581,7 +581,7 @@ C     First test if root is an endpoint
      &     G, mu, sigma, omega1, omega0, p,tau,x,xdim)
 
          if (abs(fc) .le. tol) then
-            myzero1 = c
+            myzero1mix = c
             return
          end if
 
@@ -598,7 +598,8 @@ C     First test if root is an endpoint
 
       print*, 'maximum iteration for bisection reached solving D1 mix'
 
-      myzero1 = c
+      myzero1mix = c
+
       return
       end
 
