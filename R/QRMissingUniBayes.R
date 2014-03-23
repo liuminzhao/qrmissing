@@ -184,6 +184,7 @@ QRMissingUniBayes <- function(y, R, X, tau = 0.5,
 ##' @return log likelihood of univariate response with missingness
 ##' @useDynLib qrmissing
 ##' @author Minzhao Liu, Mike Daniels
+##' @export
 LLUniSingle <- function(gamma, beta, p, sigma, tau, y, X, R){
   n <- length(y)
   xdim <- dim(X)[2]

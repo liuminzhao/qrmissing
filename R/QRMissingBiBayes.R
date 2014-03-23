@@ -345,6 +345,7 @@ QRMissingBiBayes <- function(y, R, X, tau = 0.5,
 ##' @return log likelihood of bivariate response with missingness
 ##' @useDynLib qrmissing
 ##' @author Minzhao Liu, Mike Daniels
+##' @export
 LLBiSingle <- function(gamma1, beta1, sigma1,
                        gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
                        p, tau, y, X, R){

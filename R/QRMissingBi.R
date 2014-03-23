@@ -183,6 +183,7 @@ plot.QRMissingBi <- function(mod, ...){
 ##' @return negative log likelihood
 ##' @useDynLib qrmissing
 ##' @author Minzhao Liu
+##' @export
 ll2 <- function(param, y, X, R, tau, sp){
   n <- dim(y)[1]
   xdim <- dim(X)[2]
