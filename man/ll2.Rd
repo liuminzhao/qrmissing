@@ -2,7 +2,7 @@
 \alias{ll2}
 \title{observed negative log likelihood}
 \usage{
-  ll2(param, y, X, R, tau, sp)
+ll2(param, y, X, R, tau, sp)
 }
 \arguments{
   \item{param}{}
@@ -18,15 +18,15 @@
   \item{sp}{}
 }
 \value{
-  negative log likelihood
+negative log likelihood
 }
 \description{
-  Observed Negative Log Likelihood
+Observed Negative Log Likelihood
 }
 \details{
-  Give the observed nagetive log likelihood
+Give the observed nagetive log likelihood
 }
 \author{
-  Minzhao Liu
+Minzhao Liu
 }
 

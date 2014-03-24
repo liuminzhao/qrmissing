@@ -1,8 +1,8 @@
-\name{LLUniSingle}
-\alias{LLUniSingle}
-\title{observed log likelihood for univariate case with single normal}
+\name{LLUniMix}
+\alias{LLUniMix}
+\title{observed log likelihood for univariate case with mixture of normals}
 \usage{
-LLUniSingle(gamma, beta, p, sigma, tau, y, X, R)
+LLUniMix(gamma, beta, K, mu, sigma, omega1, omega0, p, tau, y, X, R, G)
 }
 \arguments{
   \item{gamma}{}

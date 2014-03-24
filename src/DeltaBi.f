@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 01/22/2014 15:16:34>
+C$$$  Time-stamp: <liuminzhao 03/23/2014 19:23:01>
 c$$$  2013/08/22 Bayesian MCMC for QRMissing Bivariate single normal
 c$$$
 c===========================================================
@@ -511,14 +511,15 @@ C------------------------------
       real*8 function targetunimix(delta1,gamma1,beta1,
      &     G, mu, sigma, omega1, omega0, p,tau,x,xdim)
       integer xdim, i, G
-      real*8 delta1, gamma1(xdim), beta1(xdim), mu(G), sigma(G),
+      real*8 delta1, gamma1(xdim), beta1, mu(G), sigma(G),
      &     omega1(G), omega0(G), p, tau, x(xdim)
       real*8 pnrm
 
       real*8 quan, lp
 
       quan = dot_product(gamma1, x)
-      lp = dot_product(beta1, x)
+c$$$      lp = dot_product(beta1, x)
+      lp = beta1
 
       targetunimix = 0
       do i = 1, G
@@ -537,7 +538,7 @@ C------------------------------
       real*8 function myzero1mix(gamma1,beta1, G, mu, sigma,
      &     omega1, omega0, p,tau, x, xdim)
       integer xdim, i, G
-      real*8 delta1, gamma1(xdim), beta1(xdim), mu(G), sigma(G),
+      real*8 delta1, gamma1(xdim), beta1, mu(G), sigma(G),
      &     omega1(G), omega0(G), p, tau, x(xdim)
       real*8 targetunimix
       real*8 myzero1mix
@@ -610,7 +611,7 @@ C------------------------------
      &     omega1, omega0, p,tau, n, xdim, delta)
       implicit none
       integer xdim, n, G
-      real*8 x(n, xdim), gamma(xdim), beta(xdim),sigma(G), mu(G)
+      real*8 x(n, xdim), gamma(xdim), beta(1),sigma(G), mu(G)
       real*8 p, tau, delta(n), omega1(G), omega0(G)
       real*8 myzero1mix
       integer i

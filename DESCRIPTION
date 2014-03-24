@@ -14,15 +14,8 @@ Depends:
     minqa,
     quantreg,
     numDeriv,
-    rootSolve
+    rootSolve,
+    gtools
 Description: NA
 License: GPL (>= 2)
 Keyword: quantile regression
-Collate:
-    'QRMissingBi.R'
-    'QRMissingBiPure.R'
-    'ToursMNAR.R'
-    'QRMissingUniBayes.R'
-    'QRMissingBiBayes.R'
-    'QRMissingUniBayesMix.R'
-    'QRMissingBiBayesMix.R'

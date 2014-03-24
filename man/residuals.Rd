@@ -2,7 +2,7 @@
 \alias{residuals}
 \title{residuals for fitted value}
 \usage{
-  residuals(param, y, X, R, tau, sp)
+residuals(param, y, X, R, tau, sp)
 }
 \arguments{
   \item{param}{}
@@ -18,15 +18,15 @@
   \item{sp}{sensitivity parameters}
 }
 \value{
-  a n by 2 matrix of residuals
+a n by 2 matrix of residuals
 }
 \description{
-  Residuals for fitted value
+Residuals for fitted value
 }
 \details{
-  Residuals for fitted value after pluging MLE
+Residuals for fitted value after pluging MLE
 }
 \author{
-  Minzhao Liu
+Minzhao Liu
 }
 

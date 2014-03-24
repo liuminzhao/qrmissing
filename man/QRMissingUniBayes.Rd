@@ -1,23 +1,17 @@
 \name{QRMissingUniBayes}
+\alias{QRMissingUniBayes}
 \alias{coef.QRMissingUniBayes}
 \alias{plot.QRMissingUniBayes}
-\alias{QRMissingUniBayes}
 \alias{summary.QRMissingUniBayes}
 \title{Quantile Regression in the Presence of Monotone Missingness; Univariate case}
 \usage{
-  QRMissingUniBayes(y, R, X, tau = 0.5, mcmc, prior)
+QRMissingUniBayes(y, R, X, tau = 0.5, mcmc, prior)
 
-  \method{coef}{QRMissingUniBayes} (mod, ...)
+\method{coef}{QRMissingUniBayes}(mod, ...)
 
-  \method{summary}{QRMissingUniBayes} (mod, ...)
+\method{summary}{QRMissingUniBayes}(mod, ...)
 
-  \method{plot}{QRMissingUniBayes} (mod, ...)
-
-  \method{coef}{QRMissingUniBayes} (mod, ...)
-
-  \method{summary}{QRMissingUniBayes} (mod, ...)
-
-  \method{plot}{QRMissingUniBayes} (mod, ...)
+\method{plot}{QRMissingUniBayes}(mod, ...)
 }
 \arguments{
   \item{y}{}
@@ -33,18 +27,18 @@
   \item{prior}{}
 }
 \value{
-  An object of class \code{QRMissingUni}, for which many
-  generic functions are available.
+An object of class \code{QRMissingUni}, for which many
+generic functions are available.
 }
 \description{
-  Function for quantile regression in the presence of
-  monotone missingness for univariate case
+Function for quantile regression in the presence of
+monotone missingness for univariate case
 }
 \details{
-  Using Bayesian method for univariate case for single
-  normal error
+Using Bayesian method for univariate case for single normal
+error
 }
 \author{
-  Minzhao Liu, Mike Daniels
+Minzhao Liu, Mike Daniels
 }
 

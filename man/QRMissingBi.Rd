@@ -1,22 +1,22 @@
 \name{QRMissingBi}
+\alias{QRMissingBi}
 \alias{coef.QRMissingBi}
 \alias{plot.QRMissingBi}
 \alias{print.QRMissingBi}
-\alias{QRMissingBi}
 \alias{summary.QRMissingBi}
 \title{Quantile Regression in the Presence of Monotone Missingness; Bivariates case}
 \usage{
-  QRMissingBi(y, R, X, tau = 0.5, sp = NULL, init = NULL,
-    method = "uobyqa",
-    control = list(maxit = 1000, trace = 0), hess = FALSE)
+QRMissingBi(y, R, X, tau = 0.5, sp = NULL, init = NULL,
+  method = "uobyqa", control = list(maxit = 1000, trace = 0),
+  hess = FALSE)
 
-  \method{coef}{QRMissingBi} (mod, ...)
+\method{coef}{QRMissingBi}(mod, ...)
 
-  \method{print}{QRMissingBi} (mod, ...)
+\method{print}{QRMissingBi}(mod, ...)
 
-  \method{summary}{QRMissingBi} (mod, ...)
+\method{summary}{QRMissingBi}(mod, ...)
 
-  \method{plot}{QRMissingBi} (mod, ...)
+\method{plot}{QRMissingBi}(mod, ...)
 }
 \arguments{
   \item{y}{[n, 2] response.}
@@ -49,21 +49,21 @@
   default is FALSE}
 }
 \value{
-  An object of class \code{QRMissingBi}, for which many
-  generic functions are available.
+An object of class \code{QRMissingBi}, for which many
+generic functions are available.
 }
 \description{
-  Function for quantile regression in the presence of
-  monotone missingness for bivariate case
+Function for quantile regression in the presence of
+monotone missingness for bivariate case
 
-  Plot the fitted residuals to check the normal assumption
-  for goodness of fit
+Plot the fitted residuals to check the normal assumption
+for goodness of fit
 }
 \details{
-  Fit a quantile regression for bivariate responses. For
-  more details, please check the paper.
+Fit a quantile regression for bivariate responses. For more
+details, please check the paper.
 }
 \author{
-  Minzhao Liu, Mike Daniels
+Minzhao Liu, Mike Daniels
 }
 

@@ -2,9 +2,9 @@
 \alias{QRMissingBiPure}
 \title{Quantile Regression in the Presence of Monotone Missingness; Bivariates case}
 \usage{
-  QRMissingBiPure(y, R, X, tau = 0.5, sp = NULL,
-    init = NULL, method = "uobyqa", tol = 1e-05,
-    control = list(maxit = 1000, trace = 0), hess = FALSE)
+QRMissingBiPure(y, R, X, tau = 0.5, sp = NULL, init = NULL,
+  method = "uobyqa", tol = 1e-05, control = list(maxit = 1000, trace = 0),
+  hess = FALSE)
 }
 \arguments{
   \item{y}{[n, 2] response.}
@@ -37,19 +37,18 @@
   default is FALSE}
 }
 \value{
-  An object of class \code{QRMissingBi}, for which many
-  generic functions are available.
+An object of class \code{QRMissingBi}, for which many
+generic functions are available.
 }
 \description{
-  Function for quantile regression in the presence of
-  monotone missingness for bivariate case using \emph{Pure
-  R}
+Function for quantile regression in the presence of
+monotone missingness for bivariate case using \emph{Pure R}
 }
 \details{
-  Fit a quantile regression for bivariate responses. For
-  more details, please check the paper.
+Fit a quantile regression for bivariate responses. For more
+details, please check the paper.
 }
 \author{
-  Minzhao Liu
+Minzhao Liu
 }
 

@@ -1,9 +1,9 @@
-\name{LLBiSingle}
-\alias{LLBiSingle}
-\title{observed log likelihood for bivariate case with single normal}
+\name{LLBiMix}
+\alias{LLBiMix}
+\title{observed log likelihood for bivariate case with mixture normal}
 \usage{
-LLBiSingle(gamma1, beta1, sigma1, gamma2, beta2sp, sigma21, sigma21sp, betay,
-  betaysp, p, tau, y, X, R)
+LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega11,
+  omega10, omega21, omega20sp, betay, betaysp, p, tau, y, X, R, K, G1, G2)
 }
 \arguments{
   \item{gamma1}{}

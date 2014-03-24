@@ -2,9 +2,8 @@
 \alias{ToursMNAR}
 \title{Tours Data under MNAR}
 \usage{
-  ToursMNAR(y, R, X, tau = 0.5, sp = NULL, init = NULL,
-    method = "uobyqa",
-    control = list(maxit = 1000, trace = 0), hess = FALSE)
+ToursMNAR(y, R, X, tau = 0.5, sp = NULL, init = NULL, method = "uobyqa",
+  control = list(maxit = 1000, trace = 0), hess = FALSE)
 }
 \arguments{
   \item{y}{[n, 2] response.}
@@ -37,20 +36,20 @@
   default is FALSE}
 }
 \value{
-  An object of class \code{QRMissingBi}, for which many
-  generic functions are available.
+An object of class \code{QRMissingBi}, for which many
+generic functions are available.
 }
 \description{
-  Function for quantile regression in the presence of
-  monotone missingness for bivariate case for Tours Data
-  under MNAR
+Function for quantile regression in the presence of
+monotone missingness for bivariate case for Tours Data
+under MNAR
 }
 \details{
-  Function for quantile regression in the presence of
-  monotone missingness for bivariate case for Tours Data
-  under MNAR
+Function for quantile regression in the presence of
+monotone missingness for bivariate case for Tours Data
+under MNAR
 }
 \author{
-  Minzhao Liu
+Minzhao Liu
 }
 
