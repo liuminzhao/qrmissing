@@ -176,9 +176,6 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     l <- length(q)
 
     U <- function(q){
-        l <- length(q)
-        xdim <- dim(X)[2]
-        n <- length(y)
 
         gamma1 <- q[1:xdim]
         beta1 <- q[xdim + 1]
