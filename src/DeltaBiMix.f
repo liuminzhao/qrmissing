@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 03/22/2014 09:58:39>
+C$$$  Time-stamp: <liuminzhao 03/25/2014 14:26:21>
 c$$$  2014/01/16 Bayesian MCMC for QRMissing Bivariate mixture of normals
 c$$$  make use of targetunimix, myzero1mix, mydelta1bisemix function
 c===========================================================
@@ -21,8 +21,8 @@ C------------------------------
      &     omega21, omega20sp, betay, betaysp,
      &     p, tau, x, xdim, K)
       integer xdim, i, K, j
-      real*8 d2, d1, gamma1(xdim), beta1(xdim)
-      real*8 gamma2(xdim), beta2sp(xdim)
+      real*8 d2, d1, gamma1(xdim), beta1
+      real*8 gamma2(xdim), beta2sp
       real*8 mu1(K), sigma1(K), mu2(K), sigma2(K)
       real*8 omega11(K), omega10(K), omega21(K), omega20sp(K)
       real*8 betay, betay0, betaysp, p, tau, x(xdim)
@@ -31,8 +31,8 @@ C------------------------------
 
       betay0 = betay + betaysp
 
-      lp1 = dot_product(beta1, x)
-      lp2 = dot_product(beta2sp, x)
+      lp1 = beta1
+      lp2 = beta2sp
       quan2 = dot_product(gamma2, x)
 
       ans1 = 0.d0
@@ -85,8 +85,8 @@ C------------------------------
      &     omega21, omega20sp, betay, betaysp,
      &     p, tau, x, xdim, d1, K)
       integer xdim, i, K
-      real*8 d2, gamma1(xdim), beta1(xdim)
-      real*8 gamma2(xdim), beta2sp(xdim)
+      real*8 d2, gamma1(xdim), beta1
+      real*8 gamma2(xdim), beta2sp
       real*8 mu1(K), sigma1(K), mu2(K), sigma2(K)
       real*8 omega11(K), omega10(K), omega21(K), omega20sp(K)
       real*8 betay, betay0, betaysp, p, tau, x(xdim), d1
@@ -170,8 +170,8 @@ C------------------------------
      &     p, tau, n, xdim, delta, K)
       implicit none
       integer xdim, n, K
-      real*8 x(n, xdim), gamma1(xdim), beta1(xdim)
-      real*8 gamma2(xdim), beta2sp(xdim)
+      real*8 x(n, xdim), gamma1(xdim), beta1
+      real*8 gamma2(xdim), beta2sp
       real*8 mu1(K), sigma1(K), mu2(K), sigma2(K)
       real*8 omega11(K), omega10(K), omega21(K), omega20sp(K)
       real*8 betay, betay0, betaysp
