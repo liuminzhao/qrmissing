@@ -129,14 +129,17 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     ## betay, fpi) ; dim(q) = 2p + 6K + 2
     ## external: G1, G2,
     ## Data: y, X, R, tau
-    q <- rep(0, 2*xdim + K*6 + 2)
-    qsave <- matrix(0, length(q), nsave)
+
+    ## using M-H sampling method
+    gamma1save <- gamma2save <- matrix(0, nsave, xdim)
+    beta1save <- beta2spsave <- betaysave <- psave <- rep(0, nsave)
+    mu1save <- mu2save <- sigma1save <- sigma2save <- omega1save <- omega2save <- matrix(0, nsave, K)
 
     ## TUNE
-    tunegamma1 <- tunebeta1 <- tunegamma2 <- rep(0.3, xdim)
-    tunesigma1 <- tunesigma21 <- 0.3
-    tunebetay <- 0.3
-    tunep <- 0.1
+    tunegamma1 <- tunegamma2 <- rep(0.03, xdim)
+    tunebeta2sp <- tunebetay <- tunebeta1 <- 0.03
+    tunesigma1 <- tunesigma2 <- 0.03
+    tunep <- 0.01
     arate <- 0.25
     attgamma1 <- accgamma1 <- attgamma2 <- accgamma2 <- attbeta1 <- accbeta1 <- rep(0, xdim)
     attsigma1 <- attp <- accsigma1 <- accp <- attsigma21 <- accsigma21 <- 0
@@ -150,12 +153,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     mu2 <- rnorm(K)
     sigma1 <- rep(1, K)
     sigma2 <- rep(1, K)
-    omega1 <- omega2 <- rep(1, K-1)
+    omega1 <- omega2 <- rep(1/K, K)
     betay <- betaysp <- 0
     p <- num/n
-    q <- c(gamma1, beta1, gamma2, beta2sp,
-           mu1, sigma1, mu2, sigma2,
-           omega1, omega2, betay, logit(p))
     G1 <- sample(K, size = n, replace = T)
     G2 <- sample(K, size = n, replace = T)
 
@@ -164,120 +164,90 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     dispcount <- 0
     nscan <- nburn + nskip * nsave
 
-    ## initial for HMC
-    epsilon <- 0.01
-    L <- 15
-
     start <- proc.time()[3]
 
 ########################################
 
+    ## first
+    loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
+                        mu2, sigma2, omega1, omega1, omega2, omega2,
+                        betay, 0, p, tau, y, X, R, K, G1, G2)
+
+
     ## roll
-    l <- length(q)
 
-    U <- function(q){
-
-        gamma1 <- q[1:xdim]
-        beta1 <- q[xdim + 1]
-        gamma2 <- q[(xdim + 2): (xdim * 2 + 1)]
-        beta2sp <- q[xdim*2 + 2]
-        mu1 <- q[(xdim*2 + 3):(xdim*2 + K + 2)]
-        sigma1 <- exp(q[(xdim*2 + K + 3):(xdim*2 + K*2 + 2)])
-        mu2 <- q[(xdim*2 + K*2+ 3):(xdim*2 + K*3 + 2)]
-        sigma2 <- exp(q[(xdim*2 + K*3 + 3):(xdim*2 + K*4 + 2)])
-        omega1 <- omega2 <- rep(0, K)
-        omega1[1:(K-1)] <- exp(q[(xdim*2 + K*4 + 3):(xdim*2 + K*5 + 1)])/(sum(exp(q[(xdim*2 + K*4 + 3):(xdim*2 + K*5 + 1)])) + 1)
-        omega1[K] <- 1/(sum(exp(q[(xdim*2 + K*4 + 3):(xdim*2 + K*5 + 1)])) + 1)
-        omega2[1:(K-1)] <- exp(q[(xdim*2 + K*5 + 2):(xdim*2 + K*6)])/(sum(exp(q[(xdim*2 + K*5 + 2):(xdim*2 + K*6)])) + 1)
-        omega2[K] <- 1/(sum(exp(q[(xdim*2 + K*5 + 2):(xdim*2 + K*6)])) + 1)
-        betay <- q[(xdim*2 + K*6 + 1)]
-        pi <- exp(q[xdim*2 + K*6 + 2])/(1 + exp(q[xdim*2 + K*6 + 2]))
-
-        ll <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
-                      mu2, sigma2, omega1, omega1, omega2, omega2,
-                      betay, 0, pi, tau, y, X, R, K, G1, G2)
-
-        prior <- rep(0, 12)
-        prior[1] <- sum(dnorm(gamma1, gammapm, gammapv, log = T))
-        prior[2] <- sum(dnorm(beta1, betapm, betapv, log = T))
-        prior[3] <- sum(dnorm(gamma2, gammapm, gammapv, log = T))
-        prior[4] <- sum(dnorm(beta2sp, betapm, betapv, log = T))
-        prior[5] <- sum(dnorm(mu1, log = T))
-        prior[6] <- 0 # sigma
-        prior[7] <- sum(dnorm(mu2, log = T))
-        prior[8] <- 0
-        prior[9] <- log(ddirichlet(omega1, alpha))
-        prior[10] <- log(ddirichlet(omega2, alpha))
-        prior[11] <- dnorm(betay, )
-        prior[12] <- dbeta(pi, alpha1/2, alpha2/2, log = T)
-
-        ll <- ll + sum(prior)
-
-        return(-ll)
-
-    }
-
-    dU <- function(q){
-        e <- 0.01
-        oldU <- U(q)
-        l <- length(q)
-        oldU <- U(q)
-        ans <- rep(0, l)
-
-        for (i in 1:l){
-            qprime <- q
-            qprime[i] <- qprime[i] + e
-            ans[i] <- (U(qprime) - oldU)/e
-        }
-
-        return(ans)
-
-    }
 
     for (iscan in 1:nscan) {
+        ## update new parameters
+        attgamma1 <- attgamma1 + 1
+        gamma1c <- rnorm(xdim, gamma1, tunegamma1)
+        beta1c <- rnorm(1, beta1, tunebeta1)
+        gamma2c <- rnorm(xdim, gamma2, tunegamma2)
+        beta2spc <- rnorm(1, beta2sp, tunebeta2sp)
+        mu1c <- rnorm(K, mu1, 0.03)
+        mu2c <- rnorm(K, mu2, 0.03)
+        sigma1c <- pmax(0.01, rnorm(K, sigma1, 0.003))
+        sigma2c <- pmax(0.01, rnorm(K, sigma2, 0.003))
+        omega1c <- rdirichlet(1, alpha = alpha)
+        omega2c <- rdirichlet(1, alpha = alpha)
+        betayc <- rnorm(1, betay, tunebetay)
+        pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
 
-        ## start HMC
-        ## update q and p
-        newq <- q
-        p <- rnorm(l, 0, 1)
-        current_p <- p
+        ## ll of candidate
+        loglikec <- LLBiMix(gamma1c, beta1c, gamma2c, beta2spc, mu1c, sigma1c,
+                            mu2c, sigma2c, omega1c, omega1c, omega2c, omega2c,
+                            betayc, 0, pc, tau, y, X, R, K, G1, G2)
 
-        p <- p - epsilon * dU(q)/2
+        ## prior
+        logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T)) +
+            dnorm(beta1c, betapm, betapv, log = T) +
+                sum(dnorm(gamma2c, gammapm, gammapv, log = T)) +
+                    dnorm(beta2spc, betapm, betapv, log = T) +
+                        sum(dnorm(mu1c, mupm, mupv, log = T)) +
+                            sum(dgamma(sigma1c, sigmaa, sigmab, log = T)) +
+                                sum(dnorm(mu2c, mupm, mupv, log = T)) +
+                                    sum(dgamma(sigma2c, sigmaa, sigmab, log = T)) +
+                                        log(ddirichlet(omega1c, alpha)) +
+                                            log(ddirichlet(omega2c, alpha)) +
+                                                dnorm(betayc, betapm, betapv, log = T) +
+                                                    dbeta(pc, alpha1, alpha2, log = T)
 
-        for (i in 1:L){
-            newq <- newq + epsilon * p
-            if (i!=L) p <- p - epsilon * dU(newq)
+
+        logprioro <- sum(dnorm(gamma1, gammapm, gammapv, log = T)) +
+            dnorm(beta1, betapm, betapv, log = T) +
+                sum(dnorm(gamma2, gammapm, gammapv, log = T)) +
+                    dnorm(beta2sp, betapm, betapv, log = T) +
+                        sum(dnorm(mu1 , mupm, mupv, log = T)) +
+                            sum(dgamma(sigma1 , sigmaa, sigmab, log = T)) +
+                                sum(dnorm(mu2 , mupm, mupv, log = T)) +
+                                    sum(dgamma(sigma2 , sigmaa, sigmab, log = T)) +
+                                        log(ddirichlet(omega1 , alpha)) +
+                                            log(ddirichlet(omega2 , alpha)) +
+                                                dnorm(betay , betapm, betapv, log = T) +
+                                                    dbeta(p , alpha1, alpha2, log = T)
+
+
+        ## accept
+        ratio <- loglikec + logpriorc - loglikeo - logprioro
+        if (log(runif(1)) <= ratio) {
+            accgamma1 <- accgamma1 + 1
+            loglikeo <- loglikec
+            gamma1 <- gamma1c
+            beta1 <- beta1c
+            gamma2 <- gamma2c
+            beta2sp <- beta2spc
+            mu1 <- mu1c
+            sigma1 <- sigma1c
+            mu2 <- mu2c
+            sigma2 <- sigma2c
+            omega1 <- omega1c
+            omega2 <- omega2c
+            betay <- betayc
+            p <- pc
         }
 
-        p <- p - epsilon * dU(newq)/2
 
-        p <- -p
-
-        current_U <- U(q)
-        current_K <- sum(current_p^2)/2
-        proposed_U <- U(newq)
-        proposed_K <- sum(p^2/2)
-
-        if (runif(1) < exp(current_U - proposed_U + current_K - proposed_K)){
-            q <- newq
-        }
-
-        ## update G
-        gamma1 <- q[1:xdim]
-        beta1 <- q[xdim + 1]
-        gamma2 <- q[(xdim + 2): (xdim * 2 + 1)]
-        beta2sp <- q[xdim*2 + 2]
-        mu1 <- q[(xdim*2 + 3):(xdim*2 + K + 2)]
-        sigma1 <- exp(q[(xdim*2 + K + 3):(xdim*2 + K*2 + 2)])
-        mu2 <- q[(xdim*2 + K*2+ 3):(xdim*2 + K*3 + 2)]
-        sigma2 <- exp(q[(xdim*2 + K*3 + 3):(xdim*2 + K*4 + 2)])
-        omega1 <- omega2 <- rep(0, K)
-        omega1[1:(K-1)] <- exp(q[(xdim*2 + K*4 + 3):(xdim*2 + K*5 + 1)])/(sum(exp(q[(xdim*2 + K*4 + 3):(xdim*2 + K*5 + 1)])) + 1)
-        omega1[K] <- 1/(sum(exp(q[(xdim*2 + K*4 + 3):(xdim*2 + K*5 + 1)])) + 1)
-        omega2[1:(K-1)] <- exp(q[(xdim*2 + K*5 + 2):(xdim*2 + K*6)])/(sum(exp(q[(xdim*2 + K*5 + 2):(xdim*2 + K*6)])) + 1)
-        omega2[K] <- 1/(sum(exp(q[(xdim*2 + K*5 + 2):(xdim*2 + K*6)])) + 1)
-        betay <- q[(xdim*2 + K*6 + 1)]
-        pi <- exp(q[xdim*2 + K*6 + 2])/(1 + exp(q[xdim*2 + K*6 + 2]))
+        ## Update G1, G2,
         dd <- matrix(0, n, 2)
         dd <- .Fortran("mydelta2bisemix",
                        x = as.double(X),
@@ -317,6 +287,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
             G2[i] <- rcat(1, prob2)
         }
 
+
+        ## TUNE
+
         ## SAVE
 
         if (iscan > nburn) {
@@ -324,7 +297,12 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
             if (skipcount >= nskip) {
                 isave <- isave + 1
                 dispcount <- dispcount + 1
-                qsave[, isave] <- q
+                gamma1save[isave, ] <- gamma1
+                beta1save[isave] <- beta1
+                gamma2save[isave, ] <- gamma2
+                beta2spsave[isave] <- beta2sp
+                betaysave[isave] <- betay
+                psave[isave] <- p
                 skipcount <- 0
                 if (dispcount >= ndisp) {
                     dispcount <- 0
@@ -335,7 +313,14 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
     }
 
-    ans <- list(qsave = qsave,
+    ans <- list(gamma1save = gamma1save,
+                beta1save = beta1save,
+                sigma1save = sigma1save,
+                gamma2save = gamma2save,
+                betaysave = betaysave,
+                beta2spsave = beta2spsave,
+                sigma2save = sigma2save,
+                psave = psave,
                 n = n,
                 xdim = xdim,
                 y = y,
@@ -345,7 +330,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 tau = tau,
                 tune = list(gamma1 = tunegamma1, beta1 = tunebeta1,
                     sigma1 = tunesigma1, p = tunep, gamma2 =tunegamma2,
-                    betay = tunebetay, sigma21 = tunesigma21)
+                    betay = tunebetay)
                 )
 
     class(ans) <- 'QRMissingBiBayesMix'
@@ -358,57 +343,45 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 ##' @method coef QRMissingBiBayesMix
 ##' @S3method coef QRMissingBiBayesMix
 coef.QRMissingBiBayesMix <- function(mod, ...){
-    xdim <- mod$xdim
-    K <- mod$K
-    gamma1 <- apply(mod$qsave[(1:xdim), ], 1, mean)
-    beta1 <- mean(mod$qsave[(xdim + 1), ])
-    gamma2 <- apply(mod$qsave[((xdim + 2):(xdim*2 + 1)), ], 1, mean)
-    beta2sp <- mean(mod$qsave[(xdim*2 + 2), ])
-    betay <- mean(mod$qsave[(xdim*2+K*6 + 1), ])
-    p <- inv.logit(mean(mod$qsave[(xdim*2 + 2 + K*6), ]))
-  return(list(gamma1 = gamma1, beta1 = beta1, beta2sp = beta2sp,
-              gamma2 = gamma2, betay = betay, p = p))
+    gamma1 <- apply(mod$gamma1save, 2, mean)
+    beta1 <- mean(mod$beta1save)
+    gamma2 <- apply(mod$gamma2save, 2, mean)
+    beta2sp <- mean(mod$beta2spsave)
+    betay <- mean(mod$betaysave)
+    p <- mean(mod$psave)
+    return(list(gamma1 = gamma1, beta1 = beta1, beta2sp = beta2sp,
+                gamma2 = gamma2, betay = betay, p = p))
 }
 
 ##' @rdname QRMissingBiBayesMix
 ##' @method summary QRMissingBiBayesMix
 ##' @S3method summary QRMissingBiBayesMix
 summary.QRMissingBiBayesMix <- function(mod, ...){
-  n <- mod$n
-  R <- mod$R
-  tau <- mod$tau
-  param <- mod$par
-  xdim <- mod$xdim
+    n <- mod$n
+    R <- mod$R
+    tau <- mod$tau
+    param <- mod$par
+    xdim <- mod$xdim
 
-  cat('Number of observations: ', n, '\n')
-  cat('Sample proportion of observed data: ', sum(R)/n, '\n')
-  cat('Estimated pi:', coef(mod)$p, '\n')
-  cat('Quantile: ', tau, '\n')
-  cat('Quantile regression coefficients: \n')
-  print(coef(mod))
+    cat('Number of observations: ', n, '\n')
+    cat('Sample proportion of observed data: ', sum(R)/n, '\n')
+    cat('Estimated pi:', coef(mod)$p, '\n')
+    cat('Quantile: ', tau, '\n')
+    cat('Quantile regression coefficients: \n')
+    print(coef(mod))
 }
 
 ##' @rdname QRMissingBiBayesMix
 ##' @method plot QRMissingBiBayesMix
 ##' @S3method plot QRMissingBiBayesMix
 plot.QRMissingBiBayesMix <- function(mod, ...){
-  xdim <- mod$xdim
-  K <- mod$K
-  for (i in 1:xdim){
-    plot(ts(mod$qsave[i , ]), main = paste('gamma1', i, sep = ''))
-  }
-  for (i in 1:xdim){
-    plot(ts(mod$qsave[(xdim*2 + 1 + i), ]), main = paste('gamma2', i, sep = ''))
-  }
-  for (i in (xdim + 1)){
-    plot(ts(mod$qsave[i, ]), main = paste('beta1', i, sep = ''))
-  }
-  for (i in (xdim*2 + 2)){
-    plot(ts(mod$qsave[i, ]), main = paste('beta2sp', i, sep = ''))
-  }
-  for (i in (xdim*2+K*6 + 1)){
-    plot(ts(mod$qsave[i, ]), main = paste('betay', i, sep = ''))
-  }
-
-  plot(ts(inv.logit(mod$qsave[xdim*2 + K*6 + 2, ])), main = 'p')
+    xdim <- mod$xdim
+    K <- mod$K
+    for (i in 1:xdim){
+        plot(ts(mod$gamma1save[, i]), main = paste('gamma1', i, sep = ''))
+    }
+    for (i in 1:xdim){
+        plot(ts(mod$gamma2save[, i]), main = paste('gamma2', i, sep = ''))
+    }
+    plot(ts(mod$psave), main = 'p')
 }
