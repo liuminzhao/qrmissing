@@ -32,7 +32,6 @@ LLBiMix <- function(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
                    x = as.double(X),
                    gamma1 = as.double(gamma1),
                    beta1 = as.double(beta1),
-                   sigma1 = as.double(sigma1),
                    gamma2 = as.double(gamma2),
                    beta2sp = as.double(beta2sp),
                    mu1 = as.double(mu1),
@@ -136,10 +135,10 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     mu1save <- mu2save <- sigma1save <- sigma2save <- omega1save <- omega2save <- matrix(0, nsave, K)
 
     ## TUNE
-    tunegamma1 <- tunegamma2 <- rep(0.03, xdim)
-    tunebeta2sp <- tunebetay <- tunebeta1 <- 0.03
-    tunesigma1 <- tunesigma2 <- 0.03
-    tunep <- 0.01
+    tunegamma1 <- tunegamma2 <- rep(0.01, xdim)
+    tunebeta2sp <- tunebetay <- tunebeta1 <- 0.01
+    tunesigma1 <- tunesigma2 <- 0.01
+    tunep <- 0.003
     arate <- 0.25
     attgamma1 <- accgamma1 <- attgamma2 <- accgamma2 <- attbeta1 <- accbeta1 <- rep(0, xdim)
     attsigma1 <- attp <- accsigma1 <- accp <- attsigma21 <- accsigma21 <- 0
@@ -176,76 +175,134 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
     ## roll
 
-
     for (iscan in 1:nscan) {
         ## update new parameters
+
+        ## gamma1
         attgamma1 <- attgamma1 + 1
         gamma1c <- rnorm(xdim, gamma1, tunegamma1)
-        beta1c <- rnorm(1, beta1, tunebeta1)
-        gamma2c <- rnorm(xdim, gamma2, tunegamma2)
-        beta2spc <- rnorm(1, beta2sp, tunebeta2sp)
-        mu1c <- rnorm(K, mu1, 0.03)
-        mu2c <- rnorm(K, mu2, 0.03)
-        sigma1c <- pmax(0.01, rnorm(K, sigma1, 0.003))
-        sigma2c <- pmax(0.01, rnorm(K, sigma2, 0.003))
-        omega1c <- rdirichlet(1, alpha = alpha)
-        omega2c <- rdirichlet(1, alpha = alpha)
-        betayc <- rnorm(1, betay, tunebetay)
-        pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
-
-        ## ll of candidate
-        loglikec <- LLBiMix(gamma1c, beta1c, gamma2c, beta2spc, mu1c, sigma1c,
-                            mu2c, sigma2c, omega1c, omega1c, omega2c, omega2c,
-                            betayc, 0, pc, tau, y, X, R, K, G1, G2)
-
-        ## prior
-        logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T)) +
-            dnorm(beta1c, betapm, betapv, log = T) +
-                sum(dnorm(gamma2c, gammapm, gammapv, log = T)) +
-                    dnorm(beta2spc, betapm, betapv, log = T) +
-                        sum(dnorm(mu1c, mupm, mupv, log = T)) +
-                            sum(dgamma(sigma1c, sigmaa, sigmab, log = T)) +
-                                sum(dnorm(mu2c, mupm, mupv, log = T)) +
-                                    sum(dgamma(sigma2c, sigmaa, sigmab, log = T)) +
-                                        log(ddirichlet(omega1c, alpha)) +
-                                            log(ddirichlet(omega2c, alpha)) +
-                                                dnorm(betayc, betapm, betapv, log = T) +
-                                                    dbeta(pc, alpha1, alpha2, log = T)
-
-
-        logprioro <- sum(dnorm(gamma1, gammapm, gammapv, log = T)) +
-            dnorm(beta1, betapm, betapv, log = T) +
-                sum(dnorm(gamma2, gammapm, gammapv, log = T)) +
-                    dnorm(beta2sp, betapm, betapv, log = T) +
-                        sum(dnorm(mu1 , mupm, mupv, log = T)) +
-                            sum(dgamma(sigma1 , sigmaa, sigmab, log = T)) +
-                                sum(dnorm(mu2 , mupm, mupv, log = T)) +
-                                    sum(dgamma(sigma2 , sigmaa, sigmab, log = T)) +
-                                        log(ddirichlet(omega1 , alpha)) +
-                                            log(ddirichlet(omega2 , alpha)) +
-                                                dnorm(betay , betapm, betapv, log = T) +
-                                                    dbeta(p , alpha1, alpha2, log = T)
-
-
-        ## accept
+        loglikec <- LLBiMix(gamma1c, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
+        logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T))
+        logprioro <- sum(dnorm(gamma1, gammapm, gammapv, log = T))
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
             accgamma1 <- accgamma1 + 1
             loglikeo <- loglikec
             gamma1 <- gamma1c
-            beta1 <- beta1c
-            gamma2 <- gamma2c
-            beta2sp <- beta2spc
-            mu1 <- mu1c
-            sigma1 <- sigma1c
-            mu2 <- mu2c
-            sigma2 <- sigma2c
-            omega1 <- omega1c
-            omega2 <- omega2c
-            betay <- betayc
-            p <- pc
         }
 
+        ## beta1
+        beta1c <- rnorm(1, beta1, tunebeta1)
+        loglikec <- LLBiMix(gamma1, beta1c, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
+        logpriorc <- dnorm(beta1c, betapm, betapv, log = T)
+        logprioro <- dnorm(beta1, betapm, betapv, log = T)
+        ratio <- loglikec + logpriorc - loglikeo - logprioro
+        if (log(runif(1)) <= ratio) {
+            loglikeo <- loglikec
+            beta1 <- beta1c
+        }
+
+        ## gamma2
+        gamma2c <- rnorm(xdim, gamma2, tunegamma2)
+        loglikec <- LLBiMix(gamma1, beta1, gamma2c, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
+        logpriorc <- sum(dnorm(gamma2c, gammapm, gammapv, log = T))
+        logprioro <- sum(dnorm(gamma2, gammapm, gammapv, log = T))
+        ratio <- loglikec + logpriorc - loglikeo - logprioro
+        if (log(runif(1)) <= ratio) {
+            loglikeo <- loglikec
+            gamma2 <- gamma2c
+        }
+
+        ## beta2sp
+        beta2sp <- rnorm(1, beta2sp, tunebeta2sp)
+
+        ## mu1c
+        mu1c <- rnorm(K, mu1, 0.03)
+        loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1c, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
+        logpriorc <- sum(dnorm(mu1c, mupm, mupv, log = T))
+        logprioro <- sum(dnorm(mu1, mupm, mupv, log = T))
+        ratio <- loglikec + logpriorc - loglikeo - logprioro
+        if (log(runif(1)) <= ratio) {
+            loglikeo <- loglikec
+            mu1 <- mu1c
+        }
+
+        ## mu2c
+        mu2c <- rnorm(K, mu2, 0.03)
+        loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2c, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
+        logpriorc <- sum(dnorm(mu2c, mupm, mupv, log = T))
+        logprioro <- sum(dnorm(mu2, mupm, mupv, log = T))
+        ratio <- loglikec + logpriorc - loglikeo - logprioro
+        if (log(runif(1)) <= ratio) {
+            loglikeo <- loglikec
+            mu2 <- mu2c
+        }
+
+        ## sigma1
+        sigma1c <- pmax(0.01, rnorm(K, sigma1, 0.003))
+        loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1c, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
+        logpriorc <- sum(dgamma(sigma1c, sigmaa, sigmab, log = T))
+        logprioro <- sum(dgamma(sigma1, sigmaa, sigmab, log = T))
+        ratio <- loglikec + logpriorc - loglikeo - logprioro
+        if (log(runif(1)) <= ratio) {
+            loglikeo <- loglikec
+            sigma1 <- sigma1c
+        }
+
+        ## sigma2
+        sigma2c <- pmax(0.01, rnorm(K, sigma2, 0.003))
+        loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2c, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
+        logpriorc <- sum(dgamma(sigma2c, sigmaa, sigmab, log = T))
+        logprioro <- sum(dgamma(sigma2, sigmaa, sigmab, log = T))
+        ratio <- loglikec + logpriorc - loglikeo - logprioro
+        if (log(runif(1)) <= ratio) {
+            loglikeo <- loglikec
+            sigma2 <- sigma2c
+        }
+
+        ## omega1
+        omega1c <- rdirichlet(1, alpha = alpha)
+        loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1c, omega1c, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
+        logpriorc <- log(ddirichlet(omega1c, alpha))
+        logprioro <- log(ddirichlet(omega1, alpha))
+        ratio <- loglikec + logpriorc - loglikeo - logprioro
+        if (log(runif(1)) <= ratio) {
+            loglikeo <- loglikec
+            omega1 <- omega1c
+        }
+
+        ## omega2
+        omega2c <- rdirichlet(1, alpha = alpha)
+        loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2c, omega2c, betay, 0, p, tau, y, X, R, K, G1, G2)
+        logpriorc <- log(ddirichlet(omega2c, alpha))
+        logprioro <- log(ddirichlet(omega2, alpha))
+        ratio <- loglikec + logpriorc - loglikeo - logprioro
+        if (log(runif(1)) <= ratio) {
+            loglikeo <- loglikec
+            omega2 <- omega2c
+        }
+
+        ## betay
+        betayc <- rnorm(1, betay, tunebetay)
+        loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betayc, 0, p, tau, y, X, R, K, G1, G2)
+        logpriorc <- dnorm(betayc, betapm, betapv, log = T)
+        logprioro <- dnorm(betay, betapm, betapv, log = T)
+        ratio <- loglikec + logpriorc - loglikeo - logprioro
+        if (log(runif(1)) <= ratio) {
+            loglikeo <- loglikec
+            betay <- betayc
+        }
+
+        ## p
+        pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
+        loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, pc, tau, y, X, R, K, G1, G2)
+        logpriorc <- dbeta(pc, alpha1, alpha2, log = T)
+        logprioro <- dbeta(p, alpha1, alpha2, log = T)
+        ratio <- loglikec + logpriorc - loglikeo - logprioro
+        if (log(runif(1)) <= ratio) {
+            loglikeo <- loglikec
+            p <- pc
+        }
 
         ## Update G1, G2,
         dd <- matrix(0, n, 2)
@@ -286,7 +343,6 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
             G1[i] <- rcat(1, prob1)
             G2[i] <- rcat(1, prob2)
         }
-
 
         ## TUNE
 
