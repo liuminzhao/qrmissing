@@ -32,7 +32,6 @@ LLBiMix <- function(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
                    x = as.double(X),
                    gamma1 = as.double(gamma1),
                    beta1 = as.double(beta1),
-                   sigma1 = as.double(sigma1),
                    gamma2 = as.double(gamma2),
                    beta2sp = as.double(beta2sp),
                    mu1 = as.double(mu1),
@@ -218,7 +217,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     }
 
     dU <- function(q){
-        e <- 0.01
+        e <- 0.003
         oldU <- U(q)
         l <- length(q)
         oldU <- U(q)
