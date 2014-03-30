@@ -177,6 +177,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
     for (iscan in 1:nscan) {
         ## update new parameters
+        loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
 
         ## gamma1
         attgamma1 <- attgamma1 + 1
@@ -261,7 +262,13 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         }
 
         ## omega1
-        omega1c <- rdirichlet(1, alpha = alpha)
+        ## delta omega as small uniform shift
+        dl <- 50
+        da <- runif(1, min=-1,max=1)/dl
+        db <- runif(1, min = -1, max=1)/dl
+        domega1 <- c(da, db, -da - db)
+        omega1c <- domega1 + omega1
+        if (any(omega1c < 0) | any(omega1c > 1)) omega1c <- omega1
         loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1c, omega1c, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
         logpriorc <- log(ddirichlet(omega1c, alpha))
         logprioro <- log(ddirichlet(omega1, alpha))
@@ -272,7 +279,11 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         }
 
         ## omega2
-        omega2c <- rdirichlet(1, alpha = alpha)
+        da <- runif(1, min=-1,max=1)/dl
+        db <- runif(1, min = -1, max=1)/dl
+        domega2 <- c(da, db, -da - db)
+        omega2c <- domega2 + omega2
+        if (any(omega2c < 0) | any(omega2c > 1)) omega2c <- omega2
         loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2c, omega2c, betay, 0, p, tau, y, X, R, K, G1, G2)
         logpriorc <- log(ddirichlet(omega2c, alpha))
         logprioro <- log(ddirichlet(omega2, alpha))
