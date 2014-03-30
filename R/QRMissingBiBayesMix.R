@@ -32,7 +32,6 @@ LLBiMix <- function(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
                    x = as.double(X),
                    gamma1 = as.double(gamma1),
                    beta1 = as.double(beta1),
-                   sigma1 = as.double(sigma1),
                    gamma2 = as.double(gamma2),
                    beta2sp = as.double(beta2sp),
                    mu1 = as.double(mu1),
@@ -136,10 +135,10 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     mu1save <- mu2save <- sigma1save <- sigma2save <- omega1save <- omega2save <- matrix(0, nsave, K)
 
     ## TUNE
-    tunegamma1 <- tunegamma2 <- rep(0.03, xdim)
-    tunebeta2sp <- tunebetay <- tunebeta1 <- 0.03
-    tunesigma1 <- tunesigma2 <- 0.03
-    tunep <- 0.01
+    tunegamma1 <- tunegamma2 <- rep(0.001, xdim)
+    tunebeta2sp <- tunebetay <- tunebeta1 <- 0.001
+    tunesigma1 <- tunesigma2 <- 0.001
+    tunep <- 0.0003
     arate <- 0.25
     attgamma1 <- accgamma1 <- attgamma2 <- accgamma2 <- attbeta1 <- accbeta1 <- rep(0, xdim)
     attsigma1 <- attp <- accsigma1 <- accp <- attsigma21 <- accsigma21 <- 0
@@ -179,24 +178,34 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
     for (iscan in 1:nscan) {
         ## update new parameters
+        loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
+
         attgamma1 <- attgamma1 + 1
         gamma1c <- rnorm(xdim, gamma1, tunegamma1)
         beta1c <- rnorm(1, beta1, tunebeta1)
         gamma2c <- rnorm(xdim, gamma2, tunegamma2)
         beta2spc <- rnorm(1, beta2sp, tunebeta2sp)
-        mu1c <- rnorm(K, mu1, 0.03)
-        mu2c <- rnorm(K, mu2, 0.03)
-        sigma1c <- pmax(0.01, rnorm(K, sigma1, 0.003))
-        sigma2c <- pmax(0.01, rnorm(K, sigma2, 0.003))
-        omega1c <- rdirichlet(1, alpha = alpha)
-        omega2c <- rdirichlet(1, alpha = alpha)
+        mu1c <- rnorm(K, mu1, 0.003)
+        mu2c <- rnorm(K, mu2, 0.003)
+        sigma1c <- pmax(0.01, rnorm(K, sigma1, 0.001))
+        sigma2c <- pmax(0.01, rnorm(K, sigma2, 0.001))
+        ## delta omega as small uniform shift
+        dl <- 50
+        da <- runif(1, min=-1,max=1)/dl
+        db <- runif(1, min = -1, max=1)/dl
+        domega1 <- c(da, db, -da - db)
+        omega1c <- domega1 + omega1
+        if (any(omega1c < 0) | any(omega1c > 1)) omega1c <- omega1
+        da <- runif(1, min=-1,max=1)/dl
+        db <- runif(1, min = -1, max=1)/dl
+        domega2 <- c(da, db, -da - db)
+        omega2c <- domega2 + omega2
+        if (any(omega2c < 0) | any(omega2c > 1)) omega2c <- omega2
         betayc <- rnorm(1, betay, tunebetay)
         pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
 
         ## ll of candidate
-        loglikec <- LLBiMix(gamma1c, beta1c, gamma2c, beta2spc, mu1c, sigma1c,
-                            mu2c, sigma2c, omega1c, omega1c, omega2c, omega2c,
-                            betayc, 0, pc, tau, y, X, R, K, G1, G2)
+        loglikec <- LLBiMix(gamma1c, beta1c, gamma2c, beta2spc, mu1c, sigma1c, mu2c, sigma2c, omega1c, omega1c, omega2c, omega2c, betayc, 0, pc, tau, y, X, R, K, G1, G2)
 
         ## prior
         logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T)) +
