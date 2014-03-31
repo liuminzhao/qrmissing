@@ -143,6 +143,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     attgamma1 <- accgamma1 <- attgamma2 <- accgamma2 <- attbeta1 <- accbeta1 <- rep(0, xdim)
     attsigma1 <- attp <- accsigma1 <- accp <- attsigma21 <- accsigma21 <- 0
     attbetay <- accbetay <- 0
+    att <- acc <- 0
 
     ## initial
     gamma1 <- coef(rq(y[, 1] ~ X[, -1], tau = tau))
@@ -180,7 +181,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         ## update new parameters
         loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
 
-        attgamma1 <- attgamma1 + 1
+        att <- att + 1
         gamma1c <- rnorm(xdim, gamma1, tunegamma1)
         beta1c <- rnorm(1, beta1, tunebeta1)
         gamma2c <- rnorm(xdim, gamma2, tunegamma2)
@@ -239,7 +240,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         ## accept
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
-            accgamma1 <- accgamma1 + 1
+            acc <- acc + 1
             loglikeo <- loglikec
             gamma1 <- gamma1c
             beta1 <- beta1c
@@ -298,6 +299,16 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
 
         ## TUNE
+        if (att >= 100 && iscan < nburn) {
+            prop <- acc/att
+            tunegamma1 <- tunegamma1*ifelse(prop > arate, 1.5, 0.75)
+            tunebeta1 <- tunebeta1*ifelse(prop > arate, 1.5, 0.75)
+            tunegamma2 <- tunegamma2*ifelse(prop > arate, 1.5, 0.75)
+            tunebeta2sp <- tunebeta2sp*ifelse(prop > arate, 1.5, 0.75)
+            tunebetay <- tunebetay*ifelse(prop > arate, 1.5, 0.75)
+            tunep <- tunep*ifelse(prop > arate, 1.5, 0.75)
+            att <- acc <- 0
+        }
 
         ## SAVE
 
