@@ -137,12 +137,16 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     ## TUNE
     tunegamma1 <- tunegamma2 <- rep(0.01, xdim)
     tunebeta2sp <- tunebetay <- tunebeta1 <- 0.01
-    tunesigma1 <- tunesigma2 <- 0.01
+    tunemu1 <- tunemu2 <- 0.003
+    tunesigma1 <- tunesigma2 <- 0.003
     tunep <- 0.003
     arate <- 0.25
-    attgamma1 <- accgamma1 <- attgamma2 <- accgamma2 <- attbeta1 <- accbeta1 <- rep(0, xdim)
+    attgamma1 <- accgamma1 <- attgamma2 <- accgamma2 <- attbeta1 <- accbeta1 <- 0
     attsigma1 <- attp <- accsigma1 <- accp <- attsigma21 <- accsigma21 <- 0
+    accmu1 <- accmu2 <- accsigma2 <- 0
+    accomega1 <- accomega2 <- 0
     attbetay <- accbetay <- 0
+    att <- 0
 
     ## initial
     gamma1 <- coef(rq(y[, 1] ~ X[, -1], tau = tau))
@@ -180,7 +184,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
 
         ## gamma1
-        attgamma1 <- attgamma1 + 1
+        att <- att + 1
         gamma1c <- rnorm(xdim, gamma1, tunegamma1)
         loglikec <- LLBiMix(gamma1c, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
         logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T))
@@ -199,6 +203,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         logprioro <- dnorm(beta1, betapm, betapv, log = T)
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
+            accbeta1 <- accbeta1 + 1
             loglikeo <- loglikec
             beta1 <- beta1c
         }
@@ -210,6 +215,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         logprioro <- sum(dnorm(gamma2, gammapm, gammapv, log = T))
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
+            accgamma2 <- accgamma2 + 1
             loglikeo <- loglikec
             gamma2 <- gamma2c
         }
@@ -218,45 +224,49 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         beta2sp <- rnorm(1, beta2sp, tunebeta2sp)
 
         ## mu1c
-        mu1c <- rnorm(K, mu1, 0.03)
+        mu1c <- rnorm(K, mu1, tunemu1)
         loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1c, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
         logpriorc <- sum(dnorm(mu1c, mupm, mupv, log = T))
         logprioro <- sum(dnorm(mu1, mupm, mupv, log = T))
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
+            accmu1 <- accmu1 + 1
             loglikeo <- loglikec
             mu1 <- mu1c
         }
 
         ## mu2c
-        mu2c <- rnorm(K, mu2, 0.03)
+        mu2c <- rnorm(K, mu2, tunemu2)
         loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2c, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
         logpriorc <- sum(dnorm(mu2c, mupm, mupv, log = T))
         logprioro <- sum(dnorm(mu2, mupm, mupv, log = T))
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
+            accmu2 <- accmu2 + 1
             loglikeo <- loglikec
             mu2 <- mu2c
         }
 
         ## sigma1
-        sigma1c <- pmax(0.01, rnorm(K, sigma1, 0.003))
+        sigma1c <- pmax(0.01, rnorm(K, sigma1, tunesigma1))
         loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1c, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
         logpriorc <- sum(dgamma(sigma1c, sigmaa, sigmab, log = T))
         logprioro <- sum(dgamma(sigma1, sigmaa, sigmab, log = T))
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
+            accsigma1 <- accsigma1 + 1
             loglikeo <- loglikec
             sigma1 <- sigma1c
         }
 
         ## sigma2
-        sigma2c <- pmax(0.01, rnorm(K, sigma2, 0.003))
+        sigma2c <- pmax(0.01, rnorm(K, sigma2, tunesigma2))
         loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2c, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
         logpriorc <- sum(dgamma(sigma2c, sigmaa, sigmab, log = T))
         logprioro <- sum(dgamma(sigma2, sigmaa, sigmab, log = T))
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
+            accsigma2 <- accsigma2 + 1
             loglikeo <- loglikec
             sigma2 <- sigma2c
         }
@@ -274,6 +284,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         logprioro <- log(ddirichlet(omega1, alpha))
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
+            accomega1 <- accomega1 + 1
             loglikeo <- loglikec
             omega1 <- omega1c
         }
@@ -289,6 +300,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         logprioro <- log(ddirichlet(omega2, alpha))
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
+            accomega2 <- accomega2 + 1
             loglikeo <- loglikec
             omega2 <- omega2c
         }
@@ -300,6 +312,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         logprioro <- dnorm(betay, betapm, betapv, log = T)
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
+            accbetay <- accbetay + 1
             loglikeo <- loglikec
             betay <- betayc
         }
@@ -311,6 +324,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         logprioro <- dbeta(p, alpha1, alpha2, log = T)
         ratio <- loglikec + logpriorc - loglikeo - logprioro
         if (log(runif(1)) <= ratio) {
+            accp <- accp + 1
             loglikeo <- loglikec
             p <- pc
         }
@@ -356,6 +370,21 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         }
 
         ## TUNE
+        if (att >= 100 && iscan < nburn) {
+            tunegamma1 <- tunegamma1*ifelse(accgamma1/att > arate, 1.5, 0.75)
+            tunebeta1 <- tunebeta1*ifelse(accbeta1/att > arate, 1.5, 0.75)
+            tunegamma2 <- tunegamma2*ifelse(accgamma2/att > arate, 1.5, 0.75)
+            tunemu1 <- tunemu1*ifelse(accmu1/att > arate, 1.5, 0.75)
+            tunemu2 <- tunemu1*ifelse(accmu2/att > arate, 1.5, 0.75)
+            tunesigma1 <- tunesigma1*ifelse(accsigma1/att > arate, 1.5, 0.75)
+            tunesigma2 <- tunesigma2*ifelse(accsigma2/att > arate, 1.5, 0.75)
+            tunebetay <- tunebetay*ifelse(accbetay/att > arate, 1.5, 0.75)
+            tunep <- tunep*ifelse(accp/att > arate, 1.5, 0.75)
+
+            ## reset count to 0
+            att <- 0
+            accgamma1 <- accbeta1 <- accgamma2 <- accmu1 <- accmu2 <- accsigma1 <- accsigma2 <- accbetay <- accp <- 0
+        }
 
         ## SAVE
 
