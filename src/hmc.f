@@ -71,6 +71,7 @@ C     external functions
       real*8 dnrm, u
 
 C     calculate negative loglikelihood
+
       gamma1 = q(1:xdim)
       beta1 = q(xdim + 1)
       gamma2 = q((xdim + 2): (xdim * 2 + 1))
@@ -90,6 +91,9 @@ C     calculate negative loglikelihood
      &     (xdim*2 + K*6)))) + 1)
       betay = q((xdim*2 + K*6 + 1))
       pi = exp(q(xdim*2 + K*6 + 2))/(1 + exp(q(xdim*2 + K*6 + 2)))
+
+c$$$      print*, gamma1, beta1, gamma2, beta2sp, mu1
+c$$$      print*, mu2, sigma2, omega1, omega2, betay, pi
 
       call mydelta2bisemix(x,gamma1, beta1, gamma2,
      &     beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1,
@@ -188,7 +192,7 @@ C     internal
       real*8 currentu, currentk, proposedu, proposedk
       real*8 prob1(k), prob2(k)
       integer skipcount, dispcount, isave
-      real*8 tmpdu(2*xdim + k*6 + 2)
+      real*8 tmpdu(2*xdim + k*6 + 2), tmp
 
 C     internal parameters
       real*8 gamma1(xdim), beta1, gamma2(xdim), beta2sp
@@ -223,28 +227,30 @@ C     start roll
             currentp(i) = p(i)
          end do
 
-         print*, 'before first u', u(y, x, r, g1, g2,
-     &        q, n, xdim, k, tau)/2
+         call du(y, x, r, g1, g2,
+     &        q, n, xdim, k, tau, tmpdu)
+
          do i = 1, lenq
-            p(i) = p(i) - epsilon * u(y, x, r, g1, g2,
-     &           q, n, xdim, k, tau)/2
+            p(i) = p(i) - epsilon * tmpdu(i)/2
          end do
-         print*, 'after first u'
+c$$$         print*, 'after first u'
          do i = 1, l
             do j = 1, lenq
                newq(j) = newq(j) + epsilon * p(j)
-               call du(y, x, r, g1, g2,
-     &              newq, n, xdim, k, tau, tmpdu)
-               if (j .ne. lenq) then
-                  p(j) = p(j) - epsilon * tmpdu(j)
-               end if
             end do
+            call du(y, x, r, g1, g2,
+     &           newq, n, xdim, k, tau, tmpdu)
+            if (i .ne. l) then
+               do j = 1, lenq
+                  p(j) = p(j) - epsilon * tmpdu(j)
+               end do
+            end if
          end do
-         print*, 'after first du'
+c$$$         print*, 'after first du'
          call du(y, x, r, g1, g2,
      &        newq, n, xdim, k, tau, tmpdu)
          do i = 1, lenq
-            p(i) = p(i) - epsilon * tmpdu(i)
+            p(i) = p(i) - epsilon * tmpdu(i)/2
             p(i) = -p(i)
          end do
 
