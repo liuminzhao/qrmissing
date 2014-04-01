@@ -56,3 +56,16 @@ int F77_SUB(ihmssf)(int *i, int *j, int *n){
 
   return ans;
 }
+
+double F77_SUB(mylddirichlet)(double *x, double *alpha, int *k){
+  /* give log pdf of dirichlet distribution of x with parameter alpha and k as the length */
+  int i;
+  double ans;
+
+  ans = 0;
+  for (i = 0; i < *k; i ++){
+    ans += (alpha[i] - 1) * log(x[i]);
+  }
+
+  return ans;
+}
