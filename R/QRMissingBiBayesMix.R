@@ -220,7 +220,6 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         e <- 0.003
         oldU <- U(q)
         l <- length(q)
-        oldU <- U(q)
         ans <- rep(0, l)
 
         for (i in 1:l){
