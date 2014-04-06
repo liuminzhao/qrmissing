@@ -91,7 +91,6 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     n <- dim(y)[1]
     xdim <- dim(X)[2]
     num <- sum(R)
-    K <- 3 ## # of components
 
     ## prior
     gammapm <- prior$gammapm
@@ -105,6 +104,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     alpha1 <- prior$alpha1 ## for p
     alpha2 <- prior$alpha2
     alpha <- prior$alpha ## for omega
+    K <- prior$K
 
     ## prior 1a
 
@@ -135,10 +135,11 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     mu1save <- mu2save <- sigma1save <- sigma2save <- omega1save <- omega2save <- matrix(0, nsave, K)
 
     ## TUNE
-    tunegamma1 <- tunegamma2 <- rep(0.001, xdim)
-    tunebeta2sp <- tunebetay <- tunebeta1 <- 0.001
-    tunesigma1 <- tunesigma2 <- 0.001
-    tunep <- 0.0003
+    tunegamma1 <- tunegamma2 <- rep(0.1, xdim)
+    tunebeta2sp <- 0.001
+    tunebetay <- tunebeta1 <- 0.1
+    tunesigma1 <- tunesigma2 <- 0.1
+    tunep <- 0.1
     arate <- 0.25
     attgamma1 <- accgamma1 <- attgamma2 <- accgamma2 <- attbeta1 <- accbeta1 <- rep(0, xdim)
     attsigma1 <- attp <- accsigma1 <- accp <- attsigma21 <- accsigma21 <- 0
@@ -173,9 +174,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                         mu2, sigma2, omega1, omega1, omega2, omega2,
                         betay, 0, p, tau, y, X, R, K, G1, G2)
 
-
     ## roll
-
 
     for (iscan in 1:nscan) {
         ## update new parameters
@@ -185,7 +184,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         gamma1c <- rnorm(xdim, gamma1, tunegamma1)
         beta1c <- rnorm(1, beta1, tunebeta1)
         gamma2c <- rnorm(xdim, gamma2, tunegamma2)
-        beta2spc <- rnorm(1, beta2sp, tunebeta2sp)
+        ## beta2spc <- rnorm(1, beta2sp, tunebeta2sp)
+        beta2spc <- 0.001
+        ## beta2spc <- beta2sp
         mu1c <- rnorm(K, mu1, 0.003)
         mu2c <- rnorm(K, mu2, 0.003)
         sigma1c <- pmax(0.01, rnorm(K, sigma1, 0.001))
@@ -256,6 +257,8 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
             p <- pc
         }
 
+        ## update beta2sp separately
+        ## beta2sp <- rnorm(1, beta2pm, beta2pv)
 
         ## Update G1, G2,
         dd <- matrix(0, n, 2)
@@ -296,7 +299,6 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
             G1[i] <- rcat(1, prob1)
             G2[i] <- rcat(1, prob2)
         }
-
 
         ## TUNE
         if (att >= 100 && iscan < nburn) {
@@ -403,5 +405,8 @@ plot.QRMissingBiBayesMix <- function(mod, ...){
     for (i in 1:xdim){
         plot(ts(mod$gamma2save[, i]), main = paste('gamma2', i, sep = ''))
     }
+
+    plot(ts(mod$beta2spsave), main = 'beat2sp')
+    plot(ts(mod$betaysave), main = 'beaty')
     plot(ts(mod$psave), main = 'p')
 }
