@@ -91,7 +91,6 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     n <- dim(y)[1]
     xdim <- dim(X)[2]
     num <- sum(R)
-    K <- 3 ## # of components
 
     ## prior
     gammapm <- prior$gammapm
@@ -105,6 +104,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     alpha1 <- prior$alpha1 ## for p
     alpha2 <- prior$alpha2
     alpha <- prior$alpha ## for omega
+    K <- prior$K
 
     ## prior 1a
 
@@ -135,11 +135,12 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     mu1save <- mu2save <- sigma1save <- sigma2save <- omega1save <- omega2save <- matrix(0, nsave, K)
 
     ## TUNE
-    tunegamma1 <- tunegamma2 <- rep(0.01, xdim)
-    tunebeta2sp <- tunebetay <- tunebeta1 <- 0.01
-    tunemu1 <- tunemu2 <- 0.003
-    tunesigma1 <- tunesigma2 <- 0.003
-    tunep <- 0.003
+    tunegamma1 <- tunegamma2 <- rep(0.03, xdim)
+    tunebeta2sp <- 0.001
+    tunebetay <- tunebeta1 <- 0.03
+    tunemu1 <- tunemu2 <- 0.01
+    tunesigma1 <- tunesigma2 <- 0.01
+    tunep <- 0.01
     arate <- 0.25
     attgamma1 <- accgamma1 <- attgamma2 <- accgamma2 <- attbeta1 <- accbeta1 <- 0
     attsigma1 <- attp <- accsigma1 <- accp <- attsigma21 <- accsigma21 <- 0
@@ -221,7 +222,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         }
 
         ## beta2sp
-        beta2sp <- rnorm(1, beta2sp, tunebeta2sp)
+        beta2sp <- rnorm(1, beta2pm, beta2pv)
 
         ## mu1c
         mu1c <- rnorm(K, mu1, tunemu1)
@@ -479,5 +480,7 @@ plot.QRMissingBiBayesMix <- function(mod, ...){
     for (i in 1:xdim){
         plot(ts(mod$gamma2save[, i]), main = paste('gamma2', i, sep = ''))
     }
+    plot(ts(mod$beta2spsave), main = 'beta2sp')
+    plot(ts(mod$betaysave), main = 'betay')
     plot(ts(mod$psave), main = 'p')
 }
