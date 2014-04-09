@@ -185,8 +185,8 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         beta1c <- rnorm(1, beta1, tunebeta1)
         gamma2c <- rnorm(xdim, gamma2, tunegamma2)
         ## beta2spc <- rnorm(1, beta2sp, tunebeta2sp)
-        beta2spc <- 0.001
-        ## beta2spc <- beta2sp
+        ## beta2spc <- 0.001
+        beta2spc <- beta2sp
         mu1c <- rnorm(K, mu1, 0.003)
         mu2c <- rnorm(K, mu2, 0.003)
         sigma1c <- pmax(0.01, rnorm(K, sigma1, 0.001))
@@ -258,7 +258,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         }
 
         ## update beta2sp separately
-        ## beta2sp <- rnorm(1, beta2pm, beta2pv)
+        beta2sp <- rnorm(1, beta2pm, beta2pv)
 
         ## Update G1, G2,
         dd <- matrix(0, n, 2)
@@ -266,7 +266,6 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                        x = as.double(X),
                        gamma1 = as.double(gamma1),
                        beta1 = as.double(beta1),
-                       sigma1 = as.double(sigma1),
                        gamma2 = as.double(gamma2),
                        beta2sp = as.double(beta2sp),
                        mu1 = as.double(mu1),
