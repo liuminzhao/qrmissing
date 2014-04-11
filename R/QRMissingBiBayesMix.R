@@ -110,7 +110,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
     ## prior 1b
     mupm <- 0
-    mupv <- 1
+    mupv <- 0.1
 
     ## SP prior
     beta2pm <- prior$beta2pm
@@ -152,6 +152,8 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     gamma2 <- coef(rq(y[R==1,2] ~ X[R==1, -1], tau = tau))
     mu1 <- rnorm(K)
     mu2 <- rnorm(K)
+    ## mu1 <- rep(0, K)
+    ## mu2 <- rep(0, K)
     sigma1 <- rep(1, K)
     sigma2 <- rep(1, K)
     omega1 <- omega2 <- rep(1/K, K)
@@ -189,18 +191,16 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         beta2spc <- beta2sp
         mu1c <- rnorm(K, mu1, 0.003)
         mu2c <- rnorm(K, mu2, 0.003)
-        sigma1c <- pmax(0.01, rnorm(K, sigma1, 0.001))
-        sigma2c <- pmax(0.01, rnorm(K, sigma2, 0.001))
+        sigma1c <- pmax(0.01, rnorm(K, sigma1, 0.003))
+        sigma2c <- pmax(0.01, rnorm(K, sigma2, 0.003))
         ## delta omega as small uniform shift
         dl <- 50
-        da <- runif(1, min=-1,max=1)/dl
-        db <- runif(1, min = -1, max=1)/dl
-        domega1 <- c(da, db, -da - db)
+        domega1 <- runif(K, min = -1, max=1)/dl
+        domega1[K] <- -sum(domega1[-K])
         omega1c <- domega1 + omega1
         if (any(omega1c < 0) | any(omega1c > 1)) omega1c <- omega1
-        da <- runif(1, min=-1,max=1)/dl
-        db <- runif(1, min = -1, max=1)/dl
-        domega2 <- c(da, db, -da - db)
+        domega2 <- runif(K, min = -1, max=1)/dl
+        domega2[K] <- -sum(domega2[-K])
         omega2c <- domega2 + omega2
         if (any(omega2c < 0) | any(omega2c > 1)) omega2c <- omega2
         betayc <- rnorm(1, betay, tunebetay)
@@ -215,9 +215,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 sum(dnorm(gamma2c, gammapm, gammapv, log = T)) +
                     dnorm(beta2spc, betapm, betapv, log = T) +
                         sum(dnorm(mu1c, mupm, mupv, log = T)) +
-                            sum(dgamma(sigma1c, sigmaa, sigmab, log = T)) +
+                            sum(dgamma(sigma1c, sigmaa, scale = sigmab, log = T)) +
                                 sum(dnorm(mu2c, mupm, mupv, log = T)) +
-                                    sum(dgamma(sigma2c, sigmaa, sigmab, log = T)) +
+                                    sum(dgamma(sigma2c, sigmaa, scale = sigmab, log = T)) +
                                         log(ddirichlet(omega1c, alpha)) +
                                             log(ddirichlet(omega2c, alpha)) +
                                                 dnorm(betayc, betapm, betapv, log = T) +
@@ -229,9 +229,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 sum(dnorm(gamma2, gammapm, gammapv, log = T)) +
                     dnorm(beta2sp, betapm, betapv, log = T) +
                         sum(dnorm(mu1 , mupm, mupv, log = T)) +
-                            sum(dgamma(sigma1 , sigmaa, sigmab, log = T)) +
+                            sum(dgamma(sigma1 , sigmaa, scale = sigmab, log = T)) +
                                 sum(dnorm(mu2 , mupm, mupv, log = T)) +
-                                    sum(dgamma(sigma2 , sigmaa, sigmab, log = T)) +
+                                    sum(dgamma(sigma2 , sigmaa, scale = sigmab, log = T)) +
                                         log(ddirichlet(omega1 , alpha)) +
                                             log(ddirichlet(omega2 , alpha)) +
                                                 dnorm(betay , betapm, betapv, log = T) +
@@ -323,6 +323,12 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 gamma2save[isave, ] <- gamma2
                 beta2spsave[isave] <- beta2sp
                 betaysave[isave] <- betay
+                mu1save[isave, ] <- mu1
+                mu2save[isave, ] <- mu2
+                sigma1save[isave, ] <- sigma1
+                sigma2save[isave, ] <- sigma2
+                omega1save[isave, ] <- omega1
+                omega2save[isave, ] <- omega2
                 psave[isave] <- p
                 skipcount <- 0
                 if (dispcount >= ndisp) {
@@ -340,7 +346,12 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 gamma2save = gamma2save,
                 betaysave = betaysave,
                 beta2spsave = beta2spsave,
+                mu1save = mu1save,
+                mu2save = mu2save,
+                sigma1save = sigma1save,
                 sigma2save = sigma2save,
+                omega1save = omega1save,
+                omega2save = omega2save,
                 psave = psave,
                 n = n,
                 xdim = xdim,
@@ -408,4 +419,17 @@ plot.QRMissingBiBayesMix <- function(mod, ...){
     plot(ts(mod$beta2spsave), main = 'beat2sp')
     plot(ts(mod$betaysave), main = 'beaty')
     plot(ts(mod$psave), main = 'p')
+
+    for (i in 1:K){
+        plot(ts(mod$mu1save[, i]), main = 'mu1')
+    }
+
+    for (i in 1:K){
+        plot(ts(mod$sigma1save[, i]), main = 'sigma1')
+    }
+
+    for (i in 1:K){
+        plot(ts(mod$omega1save[, i]), main = 'omega1')
+    }
+
 }
