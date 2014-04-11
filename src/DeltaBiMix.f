@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 03/25/2014 14:26:21>
+C$$$  Time-stamp: <liuminzhao 04/11/2014 12:03:28>
 c$$$  2014/01/16 Bayesian MCMC for QRMissing Bivariate mixture of normals
 c$$$  make use of targetunimix, myzero1mix, mydelta1bisemix function
 c===========================================================
@@ -188,5 +188,46 @@ C------------------------------
      &        p, tau, x(i,:), xdim, delta(i, 1), K)
 
       end do
+      return
+      end
+
+
+C------------------------------
+C     multinomial distribution
+C------------------------------
+
+      integer function rcat(prob, n)
+
+      integer n, i
+      integer rcat
+      real*8 myrunif, tmp, ans, prob(n)
+
+      call rndstart()
+      tmp = myrunif(0.d0, 1.d0)
+      call rndend()
+
+      ans = 0
+
+      do i = 1, n
+         ans = ans + prob(i)
+         if (tmp .lt. ans) then
+            rcat = i
+            return
+         end if
+      end do
+
+      return
+      end
+
+C------------------------------
+C     test rcat
+C------------------------------
+      subroutine testrcat(x, prob, n)
+      implicit none
+      integer x, n, rcat
+      real*8 prob(n)
+
+      x = rcat(prob, n)
+
       return
       end
