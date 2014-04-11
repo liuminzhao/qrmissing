@@ -92,6 +92,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     xdim <- dim(X)[2]
     num <- sum(R)
 
+    ## replace NA with 0
+    y[is.na(y)] <- 0
+
     ## prior
     gammapm <- prior$gammapm
     gammapv <- prior$gammapv
@@ -162,6 +165,8 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     G1 <- sample(K, size = n, replace = T)
     G2 <- sample(K, size = n, replace = T)
 
+    dd <- matrix(0, n, 2)
+
     isave <- 0
     skipcount <- 0
     dispcount <- 0
@@ -172,9 +177,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 ########################################
 
     ## first
-    loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
-                        mu2, sigma2, omega1, omega1, omega2, omega2,
-                        betay, 0, p, tau, y, X, R, K, G1, G2)
+    loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu1, sigma1, mu2, sigma2, omega1, omega1, omega2, omega2, betay, 0, p, tau, y, X, R, K, G1, G2)
 
     ## roll
 
@@ -261,43 +264,36 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         beta2sp <- rnorm(1, beta2pm, beta2pv)
 
         ## Update G1, G2,
-        dd <- matrix(0, n, 2)
-        dd <- .Fortran("mydelta2bisemix",
-                       x = as.double(X),
-                       gamma1 = as.double(gamma1),
-                       beta1 = as.double(beta1),
-                       gamma2 = as.double(gamma2),
-                       beta2sp = as.double(beta2sp),
-                       mu1 = as.double(mu1),
-                       sigma1 = as.double(sigma1),
-                       mu2 = as.double(mu2),
-                       sigma2 = as.double(sigma2),
-                       omega11 = as.double(omega1),
-                       omega10 = as.double(omega1),
-                       omega21 = as.double(omega2),
-                       omega20sp = as.double(omega2),
-                       betay = as.double(betay),
-                       betaysp = as.double(0),
-                       p = as.double(pi),
-                       tau = as.double(tau),
-                       n = as.integer(n),
-                       xdim = as.integer(xdim),
-                       delta = as.double(dd),
-                       K = as.integer(K))$delta
-        dd <- matrix(dd, n, 2)
+        updateg1g2 <- .Fortran("updateg",
+                               x = as.double(X),
+                               gamma1 = as.double(gamma1),
+                               beta1 = as.double(beta1),
+                               gamma2 = as.double(gamma2),
+                               beta2sp = as.double(beta2sp),
+                               mu1 = as.double(mu1),
+                               sigma1 = as.double(sigma1),
+                               mu2 = as.double(mu2),
+                               sigma2 = as.double(sigma2),
+                               omega11 = as.double(omega1),
+                               omega10 = as.double(omega1),
+                               omega21 = as.double(omega2),
+                               omega20sp = as.double(omega2),
+                               betay = as.double(betay),
+                               betaysp = as.double(0),
+                               p = as.double(pi),
+                               tau = as.double(tau),
+                               n = as.integer(n),
+                               xdim = as.integer(xdim),
+                               delta = as.double(dd),
+                               K = as.integer(K),
+                               y = as.double(y),
+                               r = as.integer(R),
+                               g1 = as.integer(G1),
+                               g2 = as.integer(G2))
 
-        G1 <- G2 <- rep(0, n)
-        for (i in 1:n) {
-            if (R[i] == 1){
-                prob1 <- omega1 * dnorm(y[i, 1], dd[i, 1] + beta1 + mu1, sigma1)
-                prob2 <- omega2 * dnorm(y[i, 2], dd[i, 2] + beta2sp + betay * y[i, 1] + mu2, sigma2)
-            } else {
-                prob1 <- omega1 * dnorm(y[i, 1], dd[i, 1] - beta1 + mu1, sigma1)
-                prob2 <- omega2
-            }
-            G1[i] <- rcat(1, prob1)
-            G2[i] <- rcat(1, prob2)
-        }
+
+        G1 <- updateg1g2$g1
+        G2 <- updateg1g2$g2
 
         ## TUNE
         if (att >= 100 && iscan < nburn) {
