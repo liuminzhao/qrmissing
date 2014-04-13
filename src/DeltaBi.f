@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 03/23/2014 19:23:01>
+C$$$  Time-stamp: <liuminzhao 04/12/2014 15:28:06>
 c$$$  2013/08/22 Bayesian MCMC for QRMissing Bivariate single normal
 c$$$
 c===========================================================
@@ -12,17 +12,17 @@ CCCCCCCCCCCCCCCCCCCC
       real*8 function TargetEqn1f(delta1,gamma1,beta1,sigma1,
      &     p,tau,x,xdim)
       integer xdim, i
-      real*8 delta1, gamma1(xdim), beta1(xdim), sigma1(2),
+      real*8 delta1, gamma1(xdim), beta1, sigma1,
      &     p, tau, x(xdim)
       real*8 pnrm
 
       real*8 quan, lp
 
       quan = dot_product(gamma1, x)
-      lp = dot_product(beta1, x)
+      lp = beta1
 
-      targeteqn1f=tau-p*pnrm(quan-delta1 - lp,0.d0,sigma1(1),1,0)-
-     &     (1-p)*pnrm(quan-delta1+lp,0.d0,sigma1(2),1,0)
+      targeteqn1f=tau-p*pnrm(quan-delta1 - lp,0.d0,sigma1,1,0)-
+     &     (1-p)*pnrm(quan-delta1+lp,0.d0,sigma1,1,0)
 
       return
       end
@@ -33,7 +33,7 @@ C     myzero1: bisection method to solve for delta1
 C------------------------------
       real*8 function myzero1(gamma1,beta1, sigma1, p,tau, x, xdim)
       integer xdim, i
-      real*8 delta1, gamma1(xdim), beta1(xdim), sigma1(2), p,
+      real*8 delta1, gamma1(xdim), beta1, sigma1, p,
      &     tau, x(xdim)
       real*8 targeteqn1f
       real*8 myzero1
@@ -102,7 +102,7 @@ C------------------------------
 
       real*8 function myzeroin1(gamma1,beta1, sigma1, p,tau, x, xdim)
       integer xdim, i
-      real*8 delta1, gamma1(xdim), beta1(xdim), sigma1(2), p,
+      real*8 delta1, gamma1(xdim), beta1, sigma1, p,
      &     tau, x(xdim)
       real*8 targeteqn1f
       real*8 myzeroin1
@@ -200,8 +200,8 @@ C------------------------------
      &     gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
      &     p, tau, x, xdim)
       integer xdim, i
-      real*8 d2, gamma1(xdim), beta1(xdim), sigma1(2)
-      real*8 gamma2(xdim), beta2sp(xdim), sigma21, sigma20, sigma21sp
+      real*8 d2, gamma1(xdim), beta1, sigma1
+      real*8 gamma2(xdim), beta2sp, sigma21, sigma20, sigma21sp
       real*8 betay, betay0, betaysp, p, tau, x(xdim), d1
       real*8 myzeroin1
       real*8 p1, p2, pnrm
@@ -209,16 +209,16 @@ C------------------------------
       sigma20 = sigma21 * exp(sigma21sp)
       betay0 = betay + betaysp
 
-      lp1 = dot_product(beta1, x)
-      lp2 = dot_product(beta2sp, x)
+      lp1 = beta1
+      lp2 = beta2sp
       quan2 = dot_product(gamma2, x)
 
       if (betay .ne. 0) then
          p1=pnrm(((-d2+ quan2
      &        )/betay-(d1+lp1))/
-     &        sigma1(1)/sqrt(
+     &        sigma1/sqrt(
      &        sigma21**2/
-     &        sigma1(1)**2/betay**2+1),
+     &        sigma1**2/betay**2+1),
      &        0.d0,1.d0,1,0)
       else
          p1=pnrm((quan2-d2
@@ -228,9 +228,9 @@ C------------------------------
       if (betay0 .ne. 0) then
          p2=pnrm(((-d2+quan2 - lp2
      &        )/betay0-(d1-lp1))/
-     &        sigma1(2)/sqrt(
+     &        sigma1/sqrt(
      &        sigma20**2/
-     &        sigma1(2)**2/betay0**2+1),
+     &        sigma1**2/betay0**2+1),
      &        0.d0,1.d0,1,0)
       else
          p2=pnrm((quan2-d2-lp2
@@ -258,8 +258,8 @@ C------------------------------
      &     gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
      &     p, tau, x, xdim, d1)
       integer xdim, i
-      real*8 d2, gamma1(xdim), beta1(xdim), sigma1(2)
-      real*8 gamma2(xdim), beta2sp(xdim), sigma21, sigma20, sigma21sp
+      real*8 d2, gamma1(xdim), beta1, sigma1
+      real*8 gamma2(xdim), beta2sp, sigma21, sigma20, sigma21sp
       real*8 betay, betay0, betaysp, p, tau, x(xdim), d1
       real*8 p1, p2, pnrm
       real*8 a, b, fa, fb, c, fc, tol, prevstep, newstep
@@ -336,8 +336,8 @@ C------------------------------
      &     gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp,
      &     p, tau, x, xdim, d1)
       integer xdim, i
-      real*8 d2, gamma1(xdim), beta1(xdim), sigma1(2)
-      real*8 gamma2(xdim), beta2sp(xdim), sigma21, sigma20, sigma21sp
+      real*8 d2, gamma1(xdim), beta1, sigma1
+      real*8 gamma2(xdim), beta2sp, sigma21, sigma20, sigma21sp
       real*8 betay, betay0, betaysp, p, tau, x(xdim), d1
       real*8 p1, p2, pnrm
       real*8 a, b, fa, fb, c, fc, tol, prevstep, newstep
@@ -440,8 +440,8 @@ C------------------------------
      &     p, tau, n, xdim, delta)
       implicit none
       integer xdim, n
-      real*8 x(n, xdim), gamma1(xdim), beta1(xdim),sigma1(2)
-      real*8 gamma2(xdim), beta2sp(xdim), sigma21, sigma21sp
+      real*8 x(n, xdim), gamma1(xdim), beta1,sigma1
+      real*8 gamma2(xdim), beta2sp, sigma21, sigma21sp
       real*8 betay, betaysp
       real*8 p, tau, delta(n, 2)
       real*8 myzeroin2, myzeroin1
@@ -466,8 +466,8 @@ C------------------------------
      &     p, tau, n, xdim, delta)
       implicit none
       integer xdim, n
-      real*8 x(n, xdim), gamma1(xdim), beta1(xdim),sigma1(2)
-      real*8 gamma2(xdim), beta2sp(xdim), sigma21, sigma21sp
+      real*8 x(n, xdim), gamma1(xdim), beta1,sigma1
+      real*8 gamma2(xdim), beta2sp, sigma21, sigma21sp
       real*8 betay, betaysp
       real*8 p, tau, delta(n, 2)
       real*8 myzero2, myzero1
@@ -491,7 +491,7 @@ C------------------------------
      &     p, tau, n, xdim, delta)
       implicit none
       integer xdim, n
-      real*8 x(n, xdim), gamma(xdim), beta(xdim),sigma(2)
+      real*8 x(n, xdim), gamma(xdim), beta,sigma
       real*8 p, tau, delta(n)
       real*8 myzero1
       integer i
