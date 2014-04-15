@@ -112,8 +112,8 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     ## prior 1a
 
     ## prior 1b
-    mupm <- 0
-    mupv <- 0.1
+    mupm <- prior$mupm
+    mupv <- prior$mupv
 
     ## SP prior
     beta2pm <- prior$beta2pm
@@ -138,12 +138,18 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     mu1save <- mu2save <- sigma1save <- sigma2save <- omega1save <- omega2save <- matrix(0, nsave, K)
 
     ## TUNE
-    tunegamma1 <- tunegamma2 <- rep(0.1, xdim)
-    tunebeta2sp <- 0.001
-    tunebetay <- tunebeta1 <- 0.1
-    tunesigma1 <- tunesigma2 <- 0.1
-    tunep <- 0.1
-    arate <- 0.25
+    tunegamma1 <- prior$tunegamma1
+    tunegamma2 <- prior$tunegamma2
+    tunebeta2sp <- prior$tunebeta2sp
+    tunebetay <- prior$tunebetay
+    tunebeta1 <- prior$tunebeta1
+    tunesigma1 <- prior$tunesigma1
+    tunesigma2 <- prior$tunesigma2
+    tunep <- prior$tunep
+    arate <- prior$arate
+    tunemu <- prior$tunemu
+    tuneomega <- prior$tuneomega
+
     attgamma1 <- accgamma1 <- attgamma2 <- accgamma2 <- attbeta1 <- accbeta1 <- rep(0, xdim)
     attsigma1 <- attp <- accsigma1 <- accp <- attsigma21 <- accsigma21 <- 0
     attbetay <- accbetay <- 0
@@ -153,10 +159,10 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     gamma1 <- coef(rq(y[, 1] ~ X[, -1], tau = tau))
     beta1 <- beta2sp <- 0
     gamma2 <- coef(rq(y[R==1,2] ~ X[R==1, -1], tau = tau))
-    mu1 <- rnorm(K)
-    mu2 <- rnorm(K)
-    ## mu1 <- rep(0, K)
-    ## mu2 <- rep(0, K)
+    ## mu1 <- rnorm(K)
+    ## mu2 <- rnorm(K)
+    mu1 <- rep(0, K)
+    mu2 <- rep(0, K)
     sigma1 <- rep(1, K)
     sigma2 <- rep(1, K)
     omega1 <- omega2 <- rep(1/K, K)
@@ -192,12 +198,12 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         ## beta2spc <- rnorm(1, beta2sp, tunebeta2sp)
         ## beta2spc <- 0.001
         beta2spc <- beta2sp
-        mu1c <- rnorm(K, mu1, 0.003)
-        mu2c <- rnorm(K, mu2, 0.003)
-        sigma1c <- pmax(0.01, rnorm(K, sigma1, 0.003))
-        sigma2c <- pmax(0.01, rnorm(K, sigma2, 0.003))
+        mu1c <- rnorm(K, mu1, tunemu)
+        mu2c <- rnorm(K, mu2, tunemu)
+        sigma1c <- pmax(0.01, rnorm(K, sigma1, tunesigma1))
+        sigma2c <- pmax(0.01, rnorm(K, sigma2, tunesigma2))
         ## delta omega as small uniform shift
-        dl <- 50
+        dl <- tuneomega
         domega1 <- runif(K, min = -1, max=1)/dl
         domega1[K] <- -sum(domega1[-K])
         omega1c <- domega1 + omega1
