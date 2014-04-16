@@ -28,79 +28,80 @@
 QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
                         init = NULL, method = 'uobyqa',
                         control = list(maxit = 1000,
-                          trace = 0), hess = FALSE){
-  ## data
-  n <- dim(y)[1]
-  num <- sum(R)
-  xdim <- dim(X)[2]
+                            trace = 0), hess = FALSE){
+    ## data
+    n <- dim(y)[1]
+    num <- sum(R)
+    xdim <- dim(X)[2]
 
-  ## initial
-  if (is.null(sp)) {
-    sp <- rep(0, xdim  + 2)
-  }
-  if (!is.null(init)){
-    param <- init
-  } else {
-    lmcoef1 <- coef(rq(y[,1] ~ X[,-1], tau = tau))
-    lmcoef2 <- coef(rq(y[,2][R == 1] ~ X[R == 1,-1], tau = tau))
-    param <- rep(0, 3*xdim + 5)
-    param[1:xdim] <- lmcoef1
-    param[(2*xdim + 1):(3*xdim)] <- lmcoef2
-    param[3*xdim + 2] = log(num/(n-num))
-  }
-
-  ## nll
-  nll <- function(param){
-    ll2(param, y, X, R, tau, sp)
-  }
-
-  ## optimize nll to get MLE
-  optim_method <- c('BFGS', 'CG', 'L-BFGS-B', 'Nelder-Mead')
-
-  if (method %in% optim_method) {
-    mod <- optim(param, nll, method = method, control = control)
-  } else {
-    minqa_control <- list(iprint = control$trace, maxfun = 20*control$maxit)
-    if (method == 'bobyqa'){
-      mod <- bobyqa(param, nll, control=minqa_control)
-    } else if (method == 'uobyqa') {
-      mod <- uobyqa(param, nll, control=minqa_control)
-    } else if (method == 'newuoa') {
-      mod <- newuoa(param, nll, control=minqa_control)
+    ## initial
+    if (is.null(sp)) {
+        sp <- 0 # beta2sp
     }
-  }
+    if (!is.null(init)){
+        param <- init
+    } else {
+        lmcoef1 <- coef(rq(y[,1] ~ X[,-1], tau = tau))
+        lmcoef2 <- coef(rq(y[,2][R == 1] ~ X[R == 1,-1], tau = tau))
+        param <- rep(0, 2*xdim + 5)
+        param[1:xdim] <- lmcoef1
+        param[(xdim + 1):(2*xdim)] <- lmcoef2
+        param[2*xdim + 5] = qlogis(num/n)
+    }
 
-  ## residuals
-  res <- residuals(mod$par, y, X, R, tau, sp)
+    ## nll
+    nll <- function(param){
+        ll2(param, y, X, R, tau, sp)
+    }
 
-  ## Hessian matrix and grad
-  if (hess) {
-    Hessian <- hessian(nll, mod$par)
-    d <- grad(nll, mod$par)
-    Jninv <- solve(Hessian)
-    se <- matrix(0, 2, xdim)
-    se[1, ] <- sqrt(diag(Jninv)[1:xdim])
-    se[2, ] <- sqrt(diag(Jninv)[(2*xdim + 1):(3*xdim)])
-    rownames(se) <- c('Q1', 'Q2')
-  } else {
-    Hessian <- NULL
-    se <- NULL
-  }
+    ## optimize nll to get MLE
+    optim_method <- c('BFGS', 'CG', 'L-BFGS-B', 'Nelder-Mead')
 
-  mod$n <- n
-  mod$xdim <- xdim
-  mod$X <- X
-  mod$y <- y
-  mod$R <- R
-  mod$tau <- tau
-  mod$method <- method
-  mod$Hessian <- Hessian
-  mod$se <- se
-  mod$res <- res
+    if (method %in% optim_method) {
+        mod <- optim(param, nll, method = method, control = control)
+    } else {
+        minqa_control <- list(iprint = control$trace, maxfun = 20*control$maxit)
+        if (method == 'bobyqa'){
+            mod <- bobyqa(param, nll, control=minqa_control)
+        } else if (method == 'uobyqa') {
+            mod <- uobyqa(param, nll, control=minqa_control)
+        } else if (method == 'newuoa') {
+            mod <- newuoa(param, nll, control=minqa_control)
+        }
+    }
 
-  class(mod) <- "QRMissingBi"
+    ## residuals
+    res <- residuals(mod$par, y, X, R, tau, sp)
+    ## res <- NULL
 
-  return(mod)
+    ## Hessian matrix and grad
+    if (hess) {
+        Hessian <- hessian(nll, mod$par)
+        d <- grad(nll, mod$par)
+        Jninv <- solve(Hessian)
+        se <- matrix(0, 2, xdim)
+        se[1, ] <- sqrt(diag(Jninv)[1:xdim])
+        se[2, ] <- sqrt(diag(Jninv)[(xdim + 1):(2*xdim)])
+        rownames(se) <- c('Q1', 'Q2')
+    } else {
+        Hessian <- NULL
+        se <- NULL
+    }
+
+    mod$n <- n
+    mod$xdim <- xdim
+    mod$X <- X
+    mod$y <- y
+    mod$R <- R
+    mod$tau <- tau
+    mod$method <- method
+    mod$Hessian <- Hessian
+    mod$se <- se
+    mod$res <- res
+
+    class(mod) <- "QRMissingBi"
+
+    return(mod)
 
 }
 
@@ -108,47 +109,47 @@ QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
 ##' @method coef QRMissingBi
 ##' @S3method coef QRMissingBi
 coef.QRMissingBi <- function(mod, ...){
-  q <- mod$xdim
-  param <- mod$par[c(1:q, (2*q + 1):(3*q))]
-  coef <- matrix(param, 2, q, byrow = T)
-  rownames(coef) <- c('Q1Coef', 'Q2Coef')
-  return(coef)
+    q <- mod$xdim
+    param <- mod$par[c(1:(q*2))]
+    coef <- matrix(param, 2, q, byrow = T)
+    rownames(coef) <- c('Q1Coef', 'Q2Coef')
+    return(coef)
 }
 
 ##' @rdname QRMissingBi
 ##' @method print QRMissingBi
 ##' @S3method print QRMissingBi
 print.QRMissingBi <- function(mod, ...){
-  cat('Coefficients: \n')
-  print(coef(mod))
+    cat('Coefficients: \n')
+    print(coef(mod))
 }
 
 ##' @rdname QRMissingBi
 ##' @method summary QRMissingBi
 ##' @S3method summary QRMissingBi
 summary.QRMissingBi <- function(mod, ...){
-  n <- mod$n
-  R <- mod$R
-  tau <- mod$tau
-  param <- mod$par
-  q <- mod$xdim
+    n <- mod$n
+    R <- mod$R
+    tau <- mod$tau
+    param <- mod$par
+    q <- mod$xdim
 
-  cat('Number of observations: ', n, '\n')
-  cat('Sample proportion of observed data: ', sum(R)/n, '\n')
-  cat('Estimated pi:', exp(param[3*q + 2])/(1 + exp(param[3*q + 2])), '\n')
-  cat('Quantile: ', tau, '\n')
-  cat('Optimization method: ', mod$method, '\n')
-  optim_method <- c('BFGS', 'CG', 'L-BFGS-B', 'Nelder-Mead')
+    cat('Number of observations: ', n, '\n')
+    cat('Sample proportion of observed data: ', sum(R)/n, '\n')
+    cat('Estimated pi:', plogis(param[2*q + 5]), '\n')
+    cat('Quantile: ', tau, '\n')
+    cat('Optimization method: ', mod$method, '\n')
+    optim_method <- c('BFGS', 'CG', 'L-BFGS-B', 'Nelder-Mead')
 
-  if (mod$method %in% optim_method) {
-    cat('Model converged: ', ifelse(mod$convergence, 'No', 'Yes'), '\n')
-  } else {
-    cat('Model converged: ', ifelse(mod$ierr, 'No', 'Yes'), '\n')
-  }
-  cat('Quantile regression coefficients: \n')
-  print(coef(mod))
-  cat('Standard error: \n')
-  print(mod$se)
+    if (mod$method %in% optim_method) {
+        cat('Model converged: ', ifelse(mod$convergence, 'No', 'Yes'), '\n')
+    } else {
+        cat('Model converged: ', ifelse(mod$ierr, 'No', 'Yes'), '\n')
+    }
+    cat('Quantile regression coefficients: \n')
+    print(coef(mod))
+    cat('Standard error: \n')
+    print(mod$se)
 
 }
 
@@ -161,13 +162,13 @@ summary.QRMissingBi <- function(mod, ...){
 ##' @method plot QRMissingBi
 ##' @S3method plot QRMissingBi
 plot.QRMissingBi <- function(mod, ...){
-  R <- mod$R
-  res <- mod$res
-  tau <- mod$tau
-  qqnorm(res[, 1], main = bquote(paste('Normal Q-Q Plot for ', Y[1], ' of quantile ', tau == .(tau))))
-  qqline(res[, 1])
-  qqnorm(res[R == 1, 1], main = bquote(paste('Normal Q-Q Plot for ', Y[2], ' of quantile ', tau == .(tau))))
-  qqline(res[R == 1, 1])
+    R <- mod$R
+    res <- mod$res
+    tau <- mod$tau
+    qqnorm(res[, 1], main = bquote(paste('Normal Q-Q Plot for ', Y[1], ' of quantile ', tau == .(tau))))
+    qqline(res[, 1])
+    qqnorm(res[R == 1, 1], main = bquote(paste('Normal Q-Q Plot for ', Y[2], ' of quantile ', tau == .(tau))))
+    qqline(res[R == 1, 1])
 }
 
 ##' Observed Negative Log Likelihood
@@ -185,51 +186,52 @@ plot.QRMissingBi <- function(mod, ...){
 ##' @author Minzhao Liu
 ##' @export
 ll2 <- function(param, y, X, R, tau, sp){
-  n <- dim(y)[1]
-  xdim <- dim(X)[2]
-  num <- sum(R)
+    n <- dim(y)[1]
+    xdim <- dim(X)[2]
+    num <- sum(R)
 
-  gamma1 <- param[1:xdim]
-  beta1 <- param[(xdim + 1):(2*xdim)]
-  sigma1 <- c(exp(param[3*xdim + 3]), exp(param[3*xdim + 4]))
-  gamma2 <- param[(2*xdim + 1):(3*xdim)]
-  beta2sp <- sp[1:xdim] # SP for R = 0
-  sigma21 <- exp(param[3*xdim + 5])
-  sigma21sp <- sp[xdim + 2]  # SP for R = 0
-  betay <- param[3*xdim + 1] # for R = 1
-  betaysp <- sp[xdim + 1] # SP for R = 0
-  p <- exp(param[3*xdim + 2])/(1 + exp(param[3*xdim + 2]))
+    gamma1 <- param[1:xdim]
+    gamma2 <- param[(xdim + 1):(2*xdim)]
+    beta1 <- param[2*xdim + 1]
+    sigma1 <- exp(param[2*xdim + 2])
+    betay <- param[2*xdim + 3] # for R = 1
+    sigma21 <- exp(param[2*xdim + 4])
+    p <- exp(param[2*xdim + 5])/(1 + exp(param[2*xdim + 5]))
 
-  d <- matrix(0, n, 2)
-  d <- .Fortran("mydelta2bise",
-                x = as.double(X),
-                gamma1 = as.double(gamma1),
-                beta1 = as.double(beta1),
-                sigma1 = as.double(sigma1),
-                gamma2 = as.double(gamma2),
-                beta2sp = as.double(beta2sp),
-                sigma21 = as.double(sigma21),
-                sigma21sp = as.double(sigma21sp),
-                betay = as.double(betay),
-                betaysp = as.double(betaysp),
-                p = as.double(p),
-                tau = as.double(tau),
-                n = as.integer(n),
-                xdim = as.integer(xdim),
-                delta = as.double(d))$delta
+    beta2sp <- sp # SP for R = 0
+    sigma21sp <- 0  # SP for R = 0
+    betaysp <- 0 # SP for R = 0
 
-  d <- matrix(d, n, 2)
+    d <- matrix(0, n, 2)
+    d <- .Fortran("mydelta2bise",
+                  x = as.double(X),
+                  gamma1 = as.double(gamma1),
+                  beta1 = as.double(beta1),
+                  sigma1 = as.double(sigma1),
+                  gamma2 = as.double(gamma2),
+                  beta2sp = as.double(beta2sp),
+                  sigma21 = as.double(sigma21),
+                  sigma21sp = as.double(sigma21sp),
+                  betay = as.double(betay),
+                  betaysp = as.double(betaysp),
+                  p = as.double(p),
+                  tau = as.double(tau),
+                  n = as.integer(n),
+                  xdim = as.integer(xdim),
+                  delta = as.double(d))$delta
 
-  lp1 <- X %*% beta1
-  mu11 <- d[, 1] + lp1
-  mu10 <- d[, 1] - lp1
-  mu21 <- d[, 2] + betay * y[, 1]
-  ll11 <- sum(dnorm(y[, 1], mu11, sigma1[1], log=T)[R==1])
-  ll10 <- sum(dnorm(y[, 1], mu10, sigma1[2], log=T)[R==0])
-  ll21 <- sum(dnorm(y[, 2], mu21, sigma21, log = T)[R==1])
-  ans <- ll11 + ll10 + ll21 + num*log(p) + (n - num)*log(1 - p)
+    d <- matrix(d, n, 2)
 
-  return(-ans)
+    lp1 <- beta1
+    mu11 <- d[, 1] + lp1
+    mu10 <- d[, 1] - lp1
+    mu21 <- d[, 2] + betay * y[, 1]
+    ll11 <- sum(dnorm(y[, 1], mu11, sigma1, log = T)[R==1])
+    ll10 <- sum(dnorm(y[, 1], mu10, sigma1, log = T)[R==0])
+    ll21 <- sum(dnorm(y[, 2], mu21, sigma21, log = T)[R==1])
+    ans <- ll11 + ll10 + ll21 + num*log(p) + (n - num)*log(1 - p)
+
+    return(-ans)
 }
 
 ##' Residuals for fitted value
@@ -246,50 +248,52 @@ ll2 <- function(param, y, X, R, tau, sp){
 ##' @return a n by 2 matrix of residuals
 ##' @author Minzhao Liu
 residuals <- function(param, y, X, R, tau, sp){
-  n <- dim(y)[1]
-  xdim <- dim(X)[2]
-  num <- sum(R)
 
-  gamma1 <- param[1:xdim]
-  beta1 <- param[(xdim + 1):(2*xdim)]
-  sigma1 <- c(exp(param[3*xdim + 3]), exp(param[3*xdim + 4]))
-  gamma2 <- param[(2*xdim + 1):(3*xdim)]
-  beta2sp <- sp[1:xdim] # SP for R = 0
-  sigma21 <- exp(param[3*xdim + 5])
-  sigma21sp <- sp[xdim + 2]  # SP for R = 0
-  betay <- param[3*xdim + 1] # for R = 1
-  betaysp <- sp[xdim + 1] # SP for R = 0
-  p <- exp(param[3*xdim + 2])/(1 + exp(param[3*xdim + 2]))
+    n <- dim(y)[1]
+    xdim <- dim(X)[2]
+    num <- sum(R)
 
-  d <- matrix(0, n, 2)
-  d <- .Fortran("mydelta2bise",
-                x = as.double(X),
-                gamma1 = as.double(gamma1),
-                beta1 = as.double(beta1),
-                sigma1 = as.double(sigma1),
-                gamma2 = as.double(gamma2),
-                beta2sp = as.double(beta2sp),
-                sigma21 = as.double(sigma21),
-                sigma21sp = as.double(sigma21sp),
-                betay = as.double(betay),
-                betaysp = as.double(betaysp),
-                p = as.double(p),
-                tau = as.double(tau),
-                n = as.integer(n),
-                xdim = as.integer(xdim),
-                delta = as.double(d))$delta
+    gamma1 <- param[1:xdim]
+    gamma2 <- param[(xdim + 1):(2*xdim)]
+    beta1 <- param[2*xdim + 1]
+    sigma1 <- exp(param[2*xdim + 2])
+    betay <- param[2*xdim + 3] # for R = 1
+    sigma21 <- exp(param[2*xdim + 4])
+    p <- exp(param[2*xdim + 5])/(1 + exp(param[2*xdim + 5]))
 
-  d <- matrix(d, n, 2)
+    beta2sp <- sp # SP for R = 0
+    sigma21sp <- 0  # SP for R = 0
+    betaysp <- 0 # SP for R = 0
 
-  lp1 <- X %*% beta1
-  mu11 <- d[, 1] + lp1
-  mu10 <- d[, 1] - lp1
-  mu21 <- d[, 2] + betay * y[, 1]
+    d <- matrix(0, n, 2)
+    d <- .Fortran("mydelta2bise",
+                  x = as.double(X),
+                  gamma1 = as.double(gamma1),
+                  beta1 = as.double(beta1),
+                  sigma1 = as.double(sigma1),
+                  gamma2 = as.double(gamma2),
+                  beta2sp = as.double(beta2sp),
+                  sigma21 = as.double(sigma21),
+                  sigma21sp = as.double(sigma21sp),
+                  betay = as.double(betay),
+                  betaysp = as.double(betaysp),
+                  p = as.double(p),
+                  tau = as.double(tau),
+                  n = as.integer(n),
+                  xdim = as.integer(xdim),
+                  delta = as.double(d))$delta
 
-  res <- matrix(NA, n, 2)
-  res[R == 1, 1] <- (y[R==1, 1] - mu11[R == 1])/sigma1[1]
-  res[R == 0, 1] <- (y[R==0, 1] - mu10[R == 0])/sigma1[2]
-  res[R == 1, 2] <- (y[R==1, 2] - mu21[R == 1])/sigma21
+    d <- matrix(d, n, 2)
 
-  return(res)
+    lp1 <- beta1
+    mu11 <- d[, 1] + lp1
+    mu10 <- d[, 1] - lp1
+    mu21 <- d[, 2] + betay * y[, 1]
+
+    res <- matrix(NA, n, 2)
+    res[R == 1, 1] <- (y[R==1, 1] - mu11[R == 1])/sigma1
+    res[R == 0, 1] <- (y[R==0, 1] - mu10[R == 0])/sigma1
+    res[R == 1, 2] <- (y[R==1, 2] - mu21[R == 1])/sigma21
+
+    return(res)
 }
