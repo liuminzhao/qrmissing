@@ -198,8 +198,6 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         ## beta2spc <- rnorm(1, beta2sp, tunebeta2sp)
         ## beta2spc <- 0.001
         beta2spc <- beta2sp
-        mu1c <- rnorm(K, mu1, tunemu)
-        mu2c <- rnorm(K, mu2, tunemu)
         sigma1c <- pmax(0.01, rnorm(K, sigma1, tunesigma1))
         sigma2c <- pmax(0.01, rnorm(K, sigma2, tunesigma2))
         ## delta omega as small uniform shift
@@ -216,16 +214,14 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
 
         ## ll of candidate
-        loglikec <- LLBiMix(gamma1c, beta1c, gamma2c, beta2spc, mu1c, sigma1c, mu2c, sigma2c, omega1c, omega1c, omega2c, omega2c, betayc, 0, pc, tau, y, X, R, K, G1, G2)
+        loglikec <- LLBiMix(gamma1c, beta1c, gamma2c, beta2spc, mu1, sigma1c, mu2, sigma2c, omega1c, omega1c, omega2c, omega2c, betayc, 0, pc, tau, y, X, R, K, G1, G2)
 
         ## prior
         logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T)) +
             dnorm(beta1c, betapm, betapv, log = T) +
                 sum(dnorm(gamma2c, gammapm, gammapv, log = T)) +
                     dnorm(beta2spc, betapm, betapv, log = T) +
-                        sum(dnorm(mu1c, mupm, mupv, log = T)) +
                             sum(dgamma(sigma1c, sigmaa, scale = sigmab, log = T)) +
-                                sum(dnorm(mu2c, mupm, mupv, log = T)) +
                                     sum(dgamma(sigma2c, sigmaa, scale = sigmab, log = T)) +
                                         log(ddirichlet(omega1c, alpha)) +
                                             log(ddirichlet(omega2c, alpha)) +
@@ -237,9 +233,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
             dnorm(beta1, betapm, betapv, log = T) +
                 sum(dnorm(gamma2, gammapm, gammapv, log = T)) +
                     dnorm(beta2sp, betapm, betapv, log = T) +
-                        sum(dnorm(mu1 , mupm, mupv, log = T)) +
                             sum(dgamma(sigma1 , sigmaa, scale = sigmab, log = T)) +
-                                sum(dnorm(mu2 , mupm, mupv, log = T)) +
                                     sum(dgamma(sigma2 , sigmaa, scale = sigmab, log = T)) +
                                         log(ddirichlet(omega1 , alpha)) +
                                             log(ddirichlet(omega2 , alpha)) +
@@ -256,9 +250,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
             beta1 <- beta1c
             gamma2 <- gamma2c
             beta2sp <- beta2spc
-            mu1 <- mu1c
             sigma1 <- sigma1c
-            mu2 <- mu2c
             sigma2 <- sigma2c
             omega1 <- omega1c
             omega2 <- omega2c
@@ -325,8 +317,6 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 gamma2save[isave, ] <- gamma2
                 beta2spsave[isave] <- beta2sp
                 betaysave[isave] <- betay
-                mu1save[isave, ] <- mu1
-                mu2save[isave, ] <- mu2
                 sigma1save[isave, ] <- sigma1
                 sigma2save[isave, ] <- sigma2
                 omega1save[isave, ] <- omega1
