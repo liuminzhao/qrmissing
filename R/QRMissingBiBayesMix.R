@@ -294,7 +294,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         G2 <- updateg1g2$g2
 
         ## TUNE
-        if (att >= 100 && iscan < nburn) {
+        ## if (att >= 100 && iscan < nburn) {
+        ## No tune
+        if (FALSE) {
             prop <- acc/att
             tunegamma1 <- tunegamma1*ifelse(prop > arate, 1.5, 0.75)
             tunebeta1 <- tunebeta1*ifelse(prop > arate, 1.5, 0.75)
@@ -354,7 +356,8 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 tau = tau,
                 tune = list(gamma1 = tunegamma1, beta1 = tunebeta1,
                     sigma1 = tunesigma1, p = tunep, gamma2 =tunegamma2,
-                    betay = tunebetay)
+                    betay = tunebetay),
+                mcmc = mcmc
                 )
 
     class(ans) <- 'QRMissingBiBayesMix'
@@ -367,6 +370,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 ##' @method coef QRMissingBiBayesMix
 ##' @S3method coef QRMissingBiBayesMix
 coef.QRMissingBiBayesMix <- function(mod, ...){
+    nsave <- mod$mcmc$nsave
+    nburn <- mod$mcmc$nburn
+
     gamma1 <- apply(mod$gamma1save, 2, mean)
     beta1 <- mean(mod$beta1save)
     gamma2 <- apply(mod$gamma2save, 2, mean)
