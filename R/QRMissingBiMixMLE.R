@@ -25,10 +25,11 @@
 ##' generic functions are available.
 ##' @author Minzhao Liu, Mike Daniels
 ##' @export
-QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
-                        init = NULL, method = 'uobyqa',
-                        control = list(maxit = 1000,
-                            trace = 0), hess = FALSE){
+QRMissingBiMixMLE <- function(y, R, X, tau = 0.5, sp = NULL,
+                              init = NULL, method = 'uobyqa',
+                              control = list(maxit = 1000,
+                                  trace = 0), hess = FALSE,
+                              K = 1){
     ## data
     n <- dim(y)[1]
     num <- sum(R)
@@ -43,15 +44,19 @@ QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
     } else {
         lmcoef1 <- coef(rq(y[,1] ~ X[,-1], tau = tau))
         lmcoef2 <- coef(rq(y[,2][R == 1] ~ X[R == 1,-1], tau = tau))
-        param <- rep(0, 2*xdim + 5)
+
+        ## param = (q1(q), q2(q), sigma1(K), sigma2(K),
+        ## omega1(K-1), omega2(K-1), beta1, betay, p),
+        ## thus dim(param) = 2q + 4K + 1
+        param <- rep(0, 2*xdim + 4*K + 1)
         param[1:xdim] <- lmcoef1
         param[(xdim + 1):(2*xdim)] <- lmcoef2
-        param[2*xdim + 5] = qlogis(num/n)
+        param[2*xdim + 4*K + 1] = qlogis(num/n)
     }
 
     ## nll
     nll <- function(param){
-        ll2(param, y, X, R, tau, sp)
+        ll2Mix(param, y, X, R, tau, sp, K)
     }
 
     ## optimize nll to get MLE
@@ -71,8 +76,8 @@ QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
     }
 
     ## residuals
-    res <- residuals(mod$par, y, X, R, tau, sp)
-    ## res <- NULL
+    ## res <- residuals(mod$par, y, X, R, tau, sp)
+    res <- NULL
 
     ## Hessian matrix and grad
     if (hess) {
@@ -98,46 +103,67 @@ QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
     mod$Hessian <- Hessian
     mod$se <- se
     mod$res <- res
+    mod$K <- K
 
-    class(mod) <- "QRMissingBi"
+    class(mod) <- "QRMissingBiMixMLE"
 
     return(mod)
 
 }
 
-##' @rdname QRMissingBi
-##' @method coef QRMissingBi
-##' @S3method coef QRMissingBi
-coef.QRMissingBi <- function(mod, ...){
-    q <- mod$xdim
-    param <- mod$par[c(1:(q*2))]
-    coef <- matrix(param, 2, q, byrow = T)
-    rownames(coef) <- c('Q1Coef', 'Q2Coef')
-    return(coef)
+##' @rdname QRMissingBiMixMLE
+##' @method coef QRMissingBiMixMLE
+##' @S3method coef QRMissingBiMixMLE
+coef.QRMissingBiMixMLE <- function(mod, ...){
+    xdim <- q <- mod$xdim
+    K <- mod$K
+    param <- mod$par
+    gamma1 <- mod$par[c(1:q)]
+    gamma2 <- mod$par[(q + 1):(2*q)]
+    sigma1 <- exp(param[(xdim*2 + 1):(xdim*2 + K)])
+    sigma2 <- exp(param[(xdim*2 + 1 + K):(xdim*2 + K*2)])
+    omega1 <- omega2 <- rep(0, K)
+    omega1[1:(K-1)] <- exp(param[(xdim*2 + K*2 + 1):(xdim*2 + K*3 - 1)])/(sum(exp(param[(xdim*2 + K*2 + 1):(xdim*2 + K*3 - 1)])) + 1)
+    omega1[K] <- 1/(sum(exp(param[(xdim*2 + K*2 + 1):(xdim*2 + K*3 - 1)])) + 1)
+    omega2[1:(K-1)] <- exp(param[(xdim*2 + K*3):(xdim*2 + K*4 - 2)])/(sum(exp(param[(xdim*2 + K*3):(xdim*2 + K*4 - 2)])) + 1)
+    omega2[K] <- 1/(sum(exp(param[(xdim*2 + K*3):(xdim*2 + K*4 - 2)])) + 1)
+    beta1 <- param[2*xdim + K*4 - 1]
+    betay <- param[2*xdim + K*4] # for R = 1
+    p <- plogis(param[2*xdim + K*4 + 1])
+
+    return(list(gamma1 = gamma1, gamma2 = gamma2,
+                beta1 = beta1, betay = betay,
+                sigma1 = sigma1, sigma2 = sigma2,
+                omega1 = omega1, omega2 = omega2,
+                p = p
+                ))
+
 }
 
-##' @rdname QRMissingBi
-##' @method print QRMissingBi
-##' @S3method print QRMissingBi
-print.QRMissingBi <- function(mod, ...){
+##' @rdname QRMissingBiMixMLE
+##' @method print QRMissingBiMixMLE
+##' @S3method print QRMissingBiMixMLE
+print.QRMissingBiMixMLE <- function(mod, ...){
     cat('Coefficients: \n')
     print(coef(mod))
 }
 
-##' @rdname QRMissingBi
-##' @method summary QRMissingBi
-##' @S3method summary QRMissingBi
-summary.QRMissingBi <- function(mod, ...){
+##' @rdname QRMissingBiMixMLE
+##' @method summary QRMissingBiMixMLE
+##' @S3method summary QRMissingBiMixMLE
+summary.QRMissingBiMixMLE <- function(mod, ...){
     n <- mod$n
     R <- mod$R
     tau <- mod$tau
     param <- mod$par
     q <- mod$xdim
+    K <- mod$K
 
     cat('Number of observations: ', n, '\n')
     cat('Sample proportion of observed data: ', sum(R)/n, '\n')
-    cat('Estimated pi:', plogis(param[2*q + 5]), '\n')
+    cat('Estimated pi:', plogis(param[2*q + 4*K + 1]), '\n')
     cat('Quantile: ', tau, '\n')
+    cat('Number of components: ', K, '\n')
     cat('Optimization method: ', mod$method, '\n')
     optim_method <- c('BFGS', 'CG', 'L-BFGS-B', 'Nelder-Mead')
 
@@ -158,10 +184,10 @@ summary.QRMissingBi <- function(mod, ...){
 ##' Plot the fitted residuals to check the normal assumption for
 ##' goodness of fit
 ##'
-##' @rdname QRMissingBi
-##' @method plot QRMissingBi
-##' @S3method plot QRMissingBi
-plot.QRMissingBi <- function(mod, ...){
+##' @rdname QRMissingBiMixMLE
+##' @method plot QRMissingBiMixMLE
+##' @S3method plot QRMissingBiMixMLE
+plot.QRMissingBiMixMLE <- function(mod, ...){
     R <- mod$R
     res <- mod$res
     tau <- mod$tau
@@ -185,115 +211,72 @@ plot.QRMissingBi <- function(mod, ...){
 ##' @useDynLib qrmissing
 ##' @author Minzhao Liu
 ##' @export
-ll2 <- function(param, y, X, R, tau, sp){
+ll2Mix <- function(param, y, X, R, tau, sp, K){
     n <- dim(y)[1]
     xdim <- dim(X)[2]
     num <- sum(R)
 
+    ## param = (q1(q), q2(q), sigma1(K), sigma2(K),
+    ## omega1(K-1), omega2(K-1), beta1, betay, p),
+    ## thus dim(param) = 2q + 4K + 1
     gamma1 <- param[1:xdim]
     gamma2 <- param[(xdim + 1):(2*xdim)]
-    beta1 <- param[2*xdim + 1]
-    sigma1 <- exp(param[2*xdim + 2])
-    betay <- param[2*xdim + 3] # for R = 1
-    sigma21 <- exp(param[2*xdim + 4])
-    p <- exp(param[2*xdim + 5])/(1 + exp(param[2*xdim + 5]))
+    sigma1 <- exp(param[(xdim*2 + 1):(xdim*2 + K)])
+    sigma2 <- exp(param[(xdim*2 + 1 + K):(xdim*2 + K*2)])
+    omega1 <- omega2 <- rep(0, K)
+    omega1[1:(K-1)] <- exp(param[(xdim*2 + K*2 + 1):(xdim*2 + K*3 - 1)])/(sum(exp(param[(xdim*2 + K*2 + 1):(xdim*2 + K*3 - 1)])) + 1)
+    omega1[K] <- 1/(sum(exp(param[(xdim*2 + K*2 + 1):(xdim*2 + K*3 - 1)])) + 1)
+    omega2[1:(K-1)] <- exp(param[(xdim*2 + K*3):(xdim*2 + K*4 - 2)])/(sum(exp(param[(xdim*2 + K*3):(xdim*2 + K*4 - 2)])) + 1)
+    omega2[K] <- 1/(sum(exp(param[(xdim*2 + K*3):(xdim*2 + K*4 - 2)])) + 1)
+    beta1 <- param[2*xdim + K*4 - 1]
+    betay <- param[2*xdim + K*4] # for R = 1
+    p <- plogis(param[2*xdim + K*4 + 1])
 
     beta2sp <- sp # SP for R = 0
     sigma21sp <- 0  # SP for R = 0
     betaysp <- 0 # SP for R = 0
 
-    d <- matrix(0, n, 2)
-    d <- .Fortran("mydelta2bise",
-                  x = as.double(X),
-                  gamma1 = as.double(gamma1),
-                  beta1 = as.double(beta1),
-                  sigma1 = as.double(sigma1),
-                  gamma2 = as.double(gamma2),
-                  beta2sp = as.double(beta2sp),
-                  sigma21 = as.double(sigma21),
-                  sigma21sp = as.double(sigma21sp),
-                  betay = as.double(betay),
-                  betaysp = as.double(betaysp),
-                  p = as.double(p),
-                  tau = as.double(tau),
-                  n = as.integer(n),
-                  xdim = as.integer(xdim),
-                  delta = as.double(d))$delta
+    mu1 <- mu2 <- rep(0, K)
 
-    d <- matrix(d, n, 2)
+    dd <- matrix(0, n, 2)
+    dd <- .Fortran("mydelta2bisemix",
+                   x = as.double(X),
+                   gamma1 = as.double(gamma1),
+                   beta1 = as.double(beta1),
+                   gamma2 = as.double(gamma2),
+                   beta2sp = as.double(beta2sp),
+                   mu1 = as.double(mu1),
+                   sigma1 = as.double(sigma1),
+                   mu2 = as.double(mu2),
+                   sigma2 = as.double(sigma2),
+                   omega11 = as.double(omega1),
+                   omega10 = as.double(omega1),
+                   omega21 = as.double(omega2),
+                   omega20sp = as.double(omega2),
+                   betay = as.double(betay),
+                   betaysp = as.double(betaysp),
+                   p = as.double(p),
+                   tau = as.double(tau),
+                   n = as.integer(n),
+                   xdim = as.integer(xdim),
+                   delta = as.double(dd),
+                   K = as.integer(K))$delta
+    dd <- matrix(dd, n, 2)
 
     lp1 <- beta1
-    mu11 <- d[, 1] + lp1
-    mu10 <- d[, 1] - lp1
-    mu21 <- d[, 2] + betay * y[, 1]
-    ll11 <- sum(dnorm(y[, 1], mu11, sigma1, log = T)[R==1])
-    ll10 <- sum(dnorm(y[, 1], mu10, sigma1, log = T)[R==0])
-    ll21 <- sum(dnorm(y[, 2], mu21, sigma21, log = T)[R==1])
-    ans <- ll11 + ll10 + ll21 + num*log(p) + (n - num)*log(1 - p)
+    mu11 <- dd[, 1] + lp1
+    mu10 <- dd[, 1] - lp1
+    mu21 <- dd[, 2] + betay * y[, 1]
+
+    ans <- 0
+
+    for (i in 1:n){
+        if (R[i] == 1) {
+            ans <- ans + log(p) + log(sum(omega1 * dnorm(y[i, 1], mu11[i], sigma1))) + log(sum(omega2 * dnorm(y[i, 2], mu21[i], sigma2)))
+        } else {
+            ans <- ans + log(1 - p) + log(sum(omega1 * dnorm(y[i, 1], mu10[i], sigma1)))
+        }
+    }
 
     return(-ans)
-}
-
-##' Residuals for fitted value
-##'
-##' Residuals for fitted value after pluging MLE
-##'
-##' @title residuals for fitted value
-##' @param param
-##' @param y responses
-##' @param X covariates matrix
-##' @param R missingnes indicator
-##' @param tau quantile of interest
-##' @param sp sensitivity parameters
-##' @return a n by 2 matrix of residuals
-##' @author Minzhao Liu
-residuals <- function(param, y, X, R, tau, sp){
-
-    n <- dim(y)[1]
-    xdim <- dim(X)[2]
-    num <- sum(R)
-
-    gamma1 <- param[1:xdim]
-    gamma2 <- param[(xdim + 1):(2*xdim)]
-    beta1 <- param[2*xdim + 1]
-    sigma1 <- exp(param[2*xdim + 2])
-    betay <- param[2*xdim + 3] # for R = 1
-    sigma21 <- exp(param[2*xdim + 4])
-    p <- exp(param[2*xdim + 5])/(1 + exp(param[2*xdim + 5]))
-
-    beta2sp <- sp # SP for R = 0
-    sigma21sp <- 0  # SP for R = 0
-    betaysp <- 0 # SP for R = 0
-
-    d <- matrix(0, n, 2)
-    d <- .Fortran("mydelta2bise",
-                  x = as.double(X),
-                  gamma1 = as.double(gamma1),
-                  beta1 = as.double(beta1),
-                  sigma1 = as.double(sigma1),
-                  gamma2 = as.double(gamma2),
-                  beta2sp = as.double(beta2sp),
-                  sigma21 = as.double(sigma21),
-                  sigma21sp = as.double(sigma21sp),
-                  betay = as.double(betay),
-                  betaysp = as.double(betaysp),
-                  p = as.double(p),
-                  tau = as.double(tau),
-                  n = as.integer(n),
-                  xdim = as.integer(xdim),
-                  delta = as.double(d))$delta
-
-    d <- matrix(d, n, 2)
-
-    lp1 <- beta1
-    mu11 <- d[, 1] + lp1
-    mu10 <- d[, 1] - lp1
-    mu21 <- d[, 2] + betay * y[, 1]
-
-    res <- matrix(NA, n, 2)
-    res[R == 1, 1] <- (y[R==1, 1] - mu11[R == 1])/sigma1
-    res[R == 0, 1] <- (y[R==0, 1] - mu10[R == 0])/sigma1
-    res[R == 1, 2] <- (y[R==1, 2] - mu21[R == 1])/sigma21
-
-    return(res)
 }
