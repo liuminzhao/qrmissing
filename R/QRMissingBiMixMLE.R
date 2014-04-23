@@ -46,9 +46,10 @@ QRMissingBiMixMLE <- function(y, R, X, tau = 0.5, sp = NULL,
         lmcoef2 <- coef(rq(y[,2][R == 1] ~ X[R == 1,-1], tau = tau))
 
         ## param = (q1(q), q2(q), sigma1(K), sigma2(K),
-        ## omega1(K-1), omega2(K-1), beta1, betay, p),
+        ## omega1(K-1), omega2(K-1), beta1, betay, p
+        ## mu1(K-1), mu2(K-1)),
         ## thus dim(param) = 2q + 4K + 1
-        param <- rep(0, 2*xdim + 4*K + 1)
+        param <- rep(0, 2*xdim + 6*K - 1)
         param[1:xdim] <- lmcoef1
         param[(xdim + 1):(2*xdim)] <- lmcoef2
         param[2*xdim + 4*K + 1] = qlogis(num/n)
@@ -130,12 +131,14 @@ coef.QRMissingBiMixMLE <- function(mod, ...){
     beta1 <- param[2*xdim + K*4 - 1]
     betay <- param[2*xdim + K*4] # for R = 1
     p <- plogis(param[2*xdim + K*4 + 1])
+    mu1 <- param[(xdim*2 + 4*K + 2):(xdim*2 + K*5)]
+    mu2 <- param[(xdim*2 + 5*K + 1):(xdim*2 + K*6 - 1)]
 
     return(list(gamma1 = gamma1, gamma2 = gamma2,
                 beta1 = beta1, betay = betay,
                 sigma1 = sigma1, sigma2 = sigma2,
                 omega1 = omega1, omega2 = omega2,
-                p = p
+                p = p, mu1 = mu1, mu2 = mu2
                 ))
 
 }
@@ -231,12 +234,15 @@ ll2Mix <- function(param, y, X, R, tau, sp, K){
     beta1 <- param[2*xdim + K*4 - 1]
     betay <- param[2*xdim + K*4] # for R = 1
     p <- plogis(param[2*xdim + K*4 + 1])
+    mu1 <- param[(xdim*2 + 4*K + 2):(xdim*2 + K*5)]
+    mu2 <- param[(xdim*2 + 5*K + 1):(xdim*2 + K*6 - 1)]
 
     beta2sp <- sp # SP for R = 0
     sigma21sp <- 0  # SP for R = 0
     betaysp <- 0 # SP for R = 0
 
-    mu1 <- mu2 <- rep(0, K)
+    mu1[K] <- - sum(mu1 * omega1[1:(K-1)])/omega1[K]
+    mu2[K] <- - sum(mu2 * omega2[1:(K-1)])/omega2[K]
 
     dd <- matrix(0, n, 2)
     dd <- .Fortran("mydelta2bisemix",
@@ -272,9 +278,9 @@ ll2Mix <- function(param, y, X, R, tau, sp, K){
 
     for (i in 1:n){
         if (R[i] == 1) {
-            ans <- ans + log(p) + log(sum(omega1 * dnorm(y[i, 1], mu11[i], sigma1))) + log(sum(omega2 * dnorm(y[i, 2], mu21[i], sigma2)))
+            ans <- ans + log(p) + log(sum(omega1 * dnorm(y[i, 1], mu11[i] + mu1, sigma1))) + log(sum(omega2 * dnorm(y[i, 2], mu21[i] + mu2, sigma2)))
         } else {
-            ans <- ans + log(1 - p) + log(sum(omega1 * dnorm(y[i, 1], mu10[i], sigma1)))
+            ans <- ans + log(1 - p) + log(sum(omega1 * dnorm(y[i, 1], mu10[i] + mu1, sigma1)))
         }
     }
 
