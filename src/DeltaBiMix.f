@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 04/29/2014 16:20:54>
+C$$$  Time-stamp: <liuminzhao 04/11/2014 14:12:01>
 c$$$  2014/01/16 Bayesian MCMC for QRMissing Bivariate mixture of normals
 c$$$  make use of targetunimix, myzero1mix, mydelta1bisemix function
 c===========================================================
@@ -27,9 +27,7 @@ C------------------------------
       real*8 omega11(K), omega10(K), omega21(K), omega20sp(K)
       real*8 betay, betay0, betaysp, p, tau, x(xdim)
       real*8 myzero1mix
-      real*8 p1, p2, pnrm, ans1, ans2, tol
-
-      tol = 0.00001
+      real*8 p1, p2, pnrm, ans1, ans2
 
       betay0 = betay + betaysp
 
@@ -42,7 +40,7 @@ C------------------------------
 
       do i = 1, K
          do j = 1, K
-            if (abs(betay) .ge. tol) then
+            if (betay .ne. 0) then
                p1=pnrm(((-d2+ quan2 - mu2(j)
      &              )/betay-(d1+lp1 + mu1(i)))/
      &              sqrt(
@@ -55,7 +53,7 @@ C------------------------------
             end if
             ans1 = ans1 + omega11(i)*omega21(j)*p1
 
-            if (abs(betay0) .ge. tol) then
+            if (betay0 .ne. 0) then
                p2=pnrm(((-d2+quan2 - lp2 - mu2(j)
      &              )/betay0-(d1-lp1+mu1(i)))/
      &              sqrt(
@@ -72,7 +70,7 @@ C------------------------------
          end do
       end do
 
-      targetbimix = tau - p * ans1 - (1 - p) * ans2
+      targetbimix = tau - p * p1 - (1 - p) * p2
 
       return
       end
@@ -102,8 +100,8 @@ C------------------------------
       tol = 0.00001
       maxit = 40
 
-      a = -300
-      b = 300
+      a = -100
+      b = 100
 
       fa = targetbimix(a, d1, gamma1, beta1, gamma2,
      &     beta2sp, mu1, sigma1, mu2, sigma2, omega11, omega10,
@@ -127,9 +125,8 @@ C     First test if root is an endpoint
 
       if (fa * fb .ge. 0) then
          print*, 'root is not included for D2.'
-c$$$         print*, fa, fb, d1, gamma1, beta1, sigma1, gamma2, beta2sp,
-c$$$     &        sigma2, betay, betaysp, p, tau,x, xdim, omega11,
-c$$$     &        omega10, omega21, omega20sp, mu1, mu2
+         print*, fa, fb, d1, gamma1, beta1, sigma1, gamma2, beta2sp,
+     &        sigma21, sigma21sp, betay, betaysp, p, tau,x, xdim
       end if
 
       do while (maxit .gt. 0)
