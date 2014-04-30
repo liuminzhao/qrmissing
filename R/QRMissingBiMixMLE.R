@@ -220,9 +220,8 @@ ll2Mix <- function(param, y, X, R, tau, sp, K){
     num <- sum(R)
 
     ## param = (q1(q), q2(q), sigma1(K), sigma2(K),
-    ## omega1(K-1), omega2(K-1), beta1, betay, p,
-    ## mu1(K-1), mu2(K-1)),
-    ## thus dim(param) = 2q + 6K - 1
+    ## omega1(K-1), omega2(K-1), beta1, betay, p),
+    ## thus dim(param) = 2q + 4K + 1
     gamma1 <- param[1:xdim]
     gamma2 <- param[(xdim + 1):(2*xdim)]
     sigma1 <- exp(param[(xdim*2 + 1):(xdim*2 + K)])
@@ -242,8 +241,8 @@ ll2Mix <- function(param, y, X, R, tau, sp, K){
     sigma21sp <- 0  # SP for R = 0
     betaysp <- 0 # SP for R = 0
 
-    mu1[K] <- - sum((mu1 * omega1)[-K])/omega1[K]
-    mu2[K] <- - sum((mu2 * omega2)[-K])/omega2[K]
+    mu1[K] <- - sum(mu1 * omega1[1:(K-1)])/omega1[K]
+    mu2[K] <- - sum(mu2 * omega2[1:(K-1)])/omega2[K]
 
     dd <- matrix(0, n, 2)
     dd <- .Fortran("mydelta2bisemix",
