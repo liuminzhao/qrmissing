@@ -1,6 +1,6 @@
 c===========================================================
 c$$$
-C$$$  Time-stamp: <liuminzhao 04/29/2014 16:20:54>
+C$$$  Time-stamp: <liuminzhao 04/30/2014 15:11:18>
 c$$$  2014/01/16 Bayesian MCMC for QRMissing Bivariate mixture of normals
 c$$$  make use of targetunimix, myzero1mix, mydelta1bisemix function
 c===========================================================
@@ -102,8 +102,8 @@ C------------------------------
       tol = 0.00001
       maxit = 40
 
-      a = -300
-      b = 300
+      a = -100
+      b = 100
 
       fa = targetbimix(a, d1, gamma1, beta1, gamma2,
      &     beta2sp, mu1, sigma1, mu2, sigma2, omega11, omega10,
