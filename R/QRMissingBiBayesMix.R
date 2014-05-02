@@ -136,6 +136,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     gamma1save <- gamma2save <- matrix(0, nsave, xdim)
     beta1save <- beta2spsave <- betaysave <- psave <- rep(0, nsave)
     musave <- sigmasave <- omegasave <- matrix(0, nsave, K)
+    alphasave <- thetasave <- rep(0, nsave)
 
     ## TUNE
     tunegamma1 <- prior$tunegamma1
@@ -172,9 +173,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     theta <- 0
 
     ## constraint
-    tol <- 0.0001
+    tol <- 0.01
     mu[K] <- - sum((mu * omega)[-K])/omega[K]
-    ## if (omega[K] < tol) mu[K] <- 0
+    if (omega[K] < tol) mu[K] <- 0
 
     dd <- matrix(0, n, 2)
 
@@ -213,7 +214,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         omegac <- z2omega(zc)
         ## TODO mu constraint
         muc[K] <- - sum((muc * omegac)[-K])/omegac[K]
-        ## if (omegac[K] < tol) muc[K] <- 0
+        if (omegac[K] < tol) muc[K] <- 0
         betayc <- rnorm(1, betay, tunebetay)
         pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
 
@@ -332,6 +333,8 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 sigmasave[isave, ] <- sigma
                 omegasave[isave, ] <- omega
                 psave[isave] <- p
+                alphasave[isave] <- alpha
+                thetasave[isave] <- theta
                 skipcount <- 0
                 if (dispcount >= ndisp) {
                     dispcount <- 0
@@ -350,6 +353,8 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 musave = musave,
                 sigmasave = sigmasave,
                 omegasave = omegasave,
+                alphasave = alphasave,
+                thetasave = thetasave,
                 psave = psave,
                 n = n,
                 xdim = xdim,
@@ -406,7 +411,7 @@ summary.QRMissingBiBayesMix <- function(mod, ...){
 ##' @rdname QRMissingBiBayesMix
 ##' @method plot QRMissingBiBayesMix
 ##' @S3method plot QRMissingBiBayesMix
-plot.QRMissingBiBayesMix <- function(mod, ...){
+plot.QRMissingBiBayesMix <- function(mod, full = FALSE, ...){
     xdim <- mod$xdim
     K <- mod$K
     for (i in 1:xdim){
@@ -420,16 +425,18 @@ plot.QRMissingBiBayesMix <- function(mod, ...){
     plot(ts(mod$betaysave), main = 'beaty')
     plot(ts(mod$psave), main = 'p')
 
-    for (i in 1:K){
-        plot(ts(mod$musave[, i]), main = 'mu')
-    }
+    if (full) {
+        for (i in 1:K){
+            plot(ts(mod$musave[, i]), main = 'mu')
+        }
 
-    for (i in 1:K){
-        plot(ts(mod$sigmasave[, i]), main = 'sigma')
-    }
+        for (i in 1:K){
+            plot(ts(mod$sigmasave[, i]), main = 'sigma')
+        }
 
-    for (i in 1:K){
-        plot(ts(mod$omegasave[, i]), main = 'omega')
+        for (i in 1:K){
+            plot(ts(mod$omegasave[, i]), main = 'omega')
+        }
     }
 
 }
