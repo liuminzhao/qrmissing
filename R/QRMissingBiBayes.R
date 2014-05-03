@@ -57,17 +57,15 @@ QRMissingBiBayes <- function(y, R, X, tau = 0.5,
   psave <- rep(0, nsave)
 
   ## TUNE
-  tunegamma1 <- tunegamma2 <- rep(0.3, xdim)
-  tunebeta1 <- 0.3
-  tunesigma1 <- tunesigma21 <- 0.3
-  tunebetay <- 0.3
-  tunep <- 0.1
-  arate <- 0.25
+  tunegamma1 <- prior$tunegamma1
+  tunegamma2 <- prior$tunegamma2
+  tunebeta1 <- prior$tunebeta1
+  tunesigma1 <- tunesigma21 <- prior$tunesigma1
+  tunebetay <- prior$tunebetay
+  tunep <- prior$tunep
+  arate <- prior$arate
 
-  attgamma1 <- accgamma1 <- attgamma2 <- accgamma2 <- rep(0, xdim)
-  attbeta1 <- accbeta1 <- 0
-  attsigma1 <- attp <- accsigma1 <- accp <- attsigma21 <- accsigma21 <- 0
-  attbetay <- accbetay <- 0
+  att <- acc <- 0
 
   ## initial
   beta1 <- 0
@@ -76,8 +74,8 @@ QRMissingBiBayes <- function(y, R, X, tau = 0.5,
   gamma2 <- coef(rq(y[R==1,2] ~ X[R==1, -1], tau = tau))
   sigma1 <- 1
   sigma21 <- 1
-  sigma21sp <- 0
-  beta2sp <- 0 # sp
+  sigma21sp <- 0 # SP
+  beta2sp <- 0 # SP
   betay <- betaysp <- 0
   p <- num/n
 
@@ -98,179 +96,89 @@ QRMissingBiBayes <- function(y, R, X, tau = 0.5,
 
   for (iscan in 1:nscan) {
 
-    ## GAMMA1
-    for (i in 1:xdim){
-      attgamma1[i] = attgamma1[i] + 1
-      gamma1c <- gamma1
-      gamma1c[i] <- rnorm(1, gamma1[i], tunegamma1[i])
-      logpriorc <- dnorm(gamma1c[i], gammapm[i], gammapv[i], log = T)
-      logprioro <- dnorm(gamma1[i], gammapm[i], gammapv[i], log = T)
-      loglikec <- LLBiSingle(gamma1c, beta1, sigma1, gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp, p, tau, y, X, R)
+      att <- att + 1
+      gamma1c <- rnorm(xdim, gamma1, tunegamma1)
+      beta1c <- rnorm(1, beta1, tunebeta1)
+      theta1 <- log(sigma1)
+      theta1c <- rnorm(1, theta1, tunesigma1)
+      sigma1c <- exp(theta1c)
+      gamma2c <- rnorm(xdim, gamma2, tunegamma2)
+      theta2 <- log(sigma21)
+      theta2c <- rnorm(1, theta2, tunesigma21)
+      sigma21c <- exp(theta2c)
+      betayc <- rnorm(1, betay, tunebetay)
+      pc <- rnorm(1, p, tunep)
+      pc <- max(min(pc, 0.99), 0.01)
 
-      ratio <- loglikec + logpriorc - loglikeo - logprioro
-      if (log(runif(1)) <= ratio) {
-        accgamma1[i] <- accgamma1[i] + 1
-        loglikeo <- loglikec
-        gamma1 <- gamma1c
-      }
-    }
+      ## Prior
+      logprioro <- logpriorc <- 0
 
-    ## BETA1
-    attbeta1 <- attbeta1 + 1
-    beta1c <- rnorm(1, beta1, tunebeta1)
-    logpriorc <- dnorm(beta1c, betapm, betapv, log = T)
-    logprioro <- dnorm(beta1, betapm, betapv, log = T)
+      logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T)) + dnorm(beta1c, betapm, betapv, log = T) + dgamma(sigma1c, sigmaa/2, sigmab/2, log = T) + sum(dnorm(gamma2c, gammapm, gammapv, log = T)) + dgamma(sigma21c, sigmaa/2, sigmab/2, log = T) + dnorm(betayc, betapm, betapv, log = T) + dbeta(pc, alpha1/2, alpha2/2, log = T)
 
-    loglikec <- LLBiSingle(gamma1, beta1c, sigma1, gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp, p, tau, y, X, R)
+      logprioro <- sum(dnorm(gamma1, gammapm, gammapv, log = T)) + dnorm(beta1, betapm, betapv, log = T) + dgamma(sigma1, sigmaa/2, sigmab/2, log = T) + sum(dnorm(gamma2, gammapm, gammapv, log = T)) + dgamma(sigma21, sigmaa/2, sigmab/2, log = T) + dnorm(betay, betapm, betapv, log = T) + dbeta(p, alpha1/2, alpha2/2, log = T)
 
-    ratio <- loglikec + logpriorc - loglikeo - logprioro
 
-    if (log(runif(1)) <= ratio) {
-        accbeta1 <- accbeta1 + 1
-        loglikeo <- loglikec
-        beta1 <- beta1c
-    }
+      ## additional prior
+      logcgkc <- -theta1 - theta2
+      logcgko <- -theta1c - theta2c
 
-    ## SIGMA1
-    attsigma1 <- attsigma1 + 1
-    theta <- log(sigma1)
-    thetac <- rnorm(1, theta, tunesigma1)
-    logcgkc <- -theta
-    logcgko <- -thetac
-    sigma1c <- exp(thetac)
 
-    loglikec <- LLBiSingle(gamma1, beta1, sigma1c, gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp, p, tau, y, X, R)
+      ## loglike
 
-    logpriorc <- dgamma(sigma1c, sigmaa/2, sigmab/2, log = T)
-    logprioro <- dgamma(sigma1, sigmaa/2, sigmab/2, log = T)
+      loglikec <- LLBiSingle(gamma1c, beta1c, sigma1c, gamma2c, beta2sp, sigma21c, sigma21sp, betayc, betaysp, pc, tau, y, X, R)
 
-    ratio <- loglikec + logpriorc - loglikeo - logprioro + logcgkc - logcgko
-
-    if (log(runif(1)) <= ratio) {
-      accsigma1 <- accsigma1 + 1
-      loglikeo <- loglikec
-      sigma1 <- sigma1c
-    }
-
-    ## GAMMA2
-    for (i in 1:xdim){
-      attgamma2[i] = attgamma2[i] + 1
-      gamma2c <- gamma2
-      gamma2c[i] <- rnorm(1, gamma2[i], tunegamma2[i])
-      logpriorc <- dnorm(gamma2c[i], gammapm[i], gammapv[i], log = T)
-      logprioro <- dnorm(gamma2[i], gammapm[i], gammapv[i], log = T)
-
-      loglikec <- LLBiSingle(gamma1, beta1, sigma1, gamma2c, beta2sp, sigma21, sigma21sp, betay, betaysp, p, tau, y, X, R)
-
-      ratio <- loglikec + logpriorc - loglikeo - logprioro
+      ratio <- loglikec + logpriorc - loglikeo - logprioro + logcgkc - logcgko
 
       if (log(runif(1)) <= ratio) {
-        accgamma2[i] <- accgamma2[i] + 1
-        loglikeo <- loglikec
-        gamma2 <- gamma2c
+          acc <- acc + 1
+          loglikeo <- loglikec
+          gamma1 <- gamma1c
+          beta1 <- beta1c
+          sigma1 <- sigma1c
+          gamma2 <- gamma2c
+          sigma21 <- sigma21c
+          betay <- betayc
+          p <- pc
       }
-    }
 
-    ## sigma21
-    attsigma21 <- attsigma21 + 1
-    theta <- log(sigma21)
-    thetac <- rnorm(1, theta, tunesigma21)
-    logcgkc <- -theta
-    logcgko <- -thetac
-    sigma21c <- exp(thetac)
-
-    loglikec <- LLBiSingle(gamma1, beta1, sigma1, gamma2, beta2sp, sigma21c, sigma21sp, betay, betaysp, p, tau, y, X, R)
-
-    logpriorc <- dgamma(sigma21c, sigmaa/2, sigmab/2, log = T)
-    logprioro <- dgamma(sigma21, sigmaa/2, sigmab/2, log = T)
-
-    ratio <- loglikec + logpriorc - loglikeo - logprioro + logcgkc - logcgko
-
-    if (log(runif(1)) <= ratio) {
-      accsigma21 <- accsigma21 + 1
-      loglikeo <- loglikec
-      sigma21 <- sigma21c
-    }
-
-    ## betay
-    attbetay <- attbetay + 1
-    betayc <- betay
-    betayc <- rnorm(1, betay, tunebetay)
-    logpriorc <- dnorm(betayc, betapm, betapv, log = T)
-    logprioro <- dnorm(betay, betapm, betapv, log = T)
-
-    loglikec <- LLBiSingle(gamma1, beta1, sigma1, gamma2, beta2sp, sigma21, sigma21sp, betayc, betaysp, p, tau, y, X, R)
-
-    ratio <- loglikec + logpriorc - loglikeo - logprioro
-
-    if (log(runif(1)) <= ratio) {
-      accbetay <- accbetay + 1
-      loglikeo <- loglikec
-      betay <- betayc
-    }
-
-    ## P
-    attp <- attp + 1
-    pc <- rnorm(1, p, tunep)
-    pc <- max(min(pc, 0.99), 0.01)
-
-    loglikec <- LLBiSingle(gamma1, beta1, sigma1, gamma2, beta2sp, sigma21, sigma21sp, betay, betaysp, pc, tau, y, X, R)
-
-    logpriorc <- dbeta(pc, alpha1/2, alpha2/2, log = T)
-    logprioro <- dbeta(p, alpha1/2, alpha2/2, log = T)
-
-    ratio = loglikec + logpriorc - loglikeo - logprioro
-
-    if (log(runif(1)) <= ratio) {
-      accp <- accp + 1
-      loglikeo <- loglikec
-      p <- pc
-    }
-
-    ## ACCEPTA
-
-    ## SP
-    beta2sp <- rnorm(xdim, beta2pm, beta2pv)
-    sigma21sp <- 0
-    betaysp <- 0
+      ## SP
+      beta2sp <- rnorm(1, beta2pm, beta2pv)
+      sigma21sp <- 0
+      betaysp <- 0
 
     ## TUNE
-    if (attgamma1[1] >= 100 & iscan < nburn) {
-      tunegamma1 <- pmin(pmax(tunegamma1*ifelse(accgamma1/attgamma1 > arate, 1.5, 0.7), 0.01), 10)
-      tunebeta1 <- pmin(pmax(tunebeta1*ifelse(accbeta1/attbeta1 > arate, 1.5, 0.7), 0.01), 10)
-      tunesigma1 <- pmin(pmax(tunesigma1*ifelse(accsigma1/attsigma1 > arate, 1.5, 0.7), 0.01), 10)
-      tunegamma2 <- pmin(pmax(tunegamma2*ifelse(accgamma2/attgamma2 > arate, 1.5, 0.7), 0.01), 10)
-      tunesigma21 <- pmin(pmax(tunesigma21*ifelse(accsigma21/attsigma21 > arate, 1.5, 0.7), 0.01), 10)
-      tunebetay <- pmin(pmax(tunebetay*ifelse(accbetay/attbetay > arate, 1.5, 0.7), 0.01), 10)
-      tunep <- pmin(pmax(tunep*ifelse(accp/attp > arate, 1.5, 0.7), 0.01), 10)
-      attgamma1 <- accgamma1 <- attbeta1 <- accbeta1 <- rep(0, xdim)
-      attgamma2 <- accgamma2 <- rep(0, xdim)
-      attsigma1 <- accsigma1 <- attsigma21 <- accsigma21 <- attp <- accp <- 0
-      attsigma21 <- accsigma21 <- 0
-      attbetay <- accbetay <- 0
-    }
+      if (att >= 100 & iscan < nburn) {
+          tunegamma1 <- pmin(pmax(tunegamma1*ifelse(acc/att > arate, 1.5, 0.7), 0.01), 10)
+          tunebeta1 <- pmin(pmax(tunebeta1*ifelse(acc/att > arate, 1.5, 0.7), 0.01), 10)
+          tunesigma1 <- pmin(pmax(tunesigma1*ifelse(acc/att > arate, 1.5, 0.7), 0.01), 10)
+          tunegamma2 <- pmin(pmax(tunegamma2*ifelse(acc/att > arate, 1.5, 0.7), 0.01), 10)
+          tunesigma21 <- pmin(pmax(tunesigma21*ifelse(acc/att > arate, 1.5, 0.7), 0.01), 10)
+          tunebetay <- pmin(pmax(tunebetay*ifelse(acc/att > arate, 1.5, 0.7), 0.01), 10)
+          tunep <- pmin(pmax(tunep*ifelse(acc/att > arate, 1.5, 0.7), 0.01), 10)
+          att <- acc <- 0
+      }
 
     ## SAVE
 
-    if (iscan > nburn) {
-      skipcount = skipcount + 1
-      if (skipcount >= nskip) {
-        isave <- isave + 1
-        dispcount <- dispcount + 1
-        gamma1save[isave, ] <- gamma1
-        beta1save[isave] <- beta1
-        sigma1save[isave] <- sigma1
-        gamma2save[isave, ] <- gamma2
-        betaysave[isave] <- betay
-        sigma21save[isave] <- sigma21
-        psave[isave] <- p
-        skipcount <- 0
-        if (dispcount >= ndisp) {
-          dispcount <- 0
-          cat(isave, 'out of', nsave, proc.time()[3] - start, '\n')
-        }
+      if (iscan > nburn) {
+          skipcount = skipcount + 1
+          if (skipcount >= nskip) {
+              isave <- isave + 1
+              dispcount <- dispcount + 1
+              gamma1save[isave, ] <- gamma1
+              beta1save[isave] <- beta1
+              sigma1save[isave] <- sigma1
+              gamma2save[isave, ] <- gamma2
+              betaysave[isave] <- betay
+              sigma21save[isave] <- sigma21
+              psave[isave] <- p
+              skipcount <- 0
+              if (dispcount >= ndisp) {
+                  dispcount <- 0
+                  cat(isave, 'out of', nsave, proc.time()[3] - start, '\n')
+              }
+          }
       }
-    }
 
   }
 
