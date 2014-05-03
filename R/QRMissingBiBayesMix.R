@@ -84,7 +84,7 @@ LLBiMix <- function(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
 ##' @author Minzhao Liu, Mike Daniels
 ##' @export
 QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
-                                mcmc, prior
+                                mcmc, prior, method = "DP"
                                 ){
 
     ## data
@@ -159,7 +159,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
     gamma1 <- coef(rq(y[, 1] ~ X[, -1], tau = tau))
     beta1 <- beta2sp <- 0
     gamma2 <- coef(rq(y[R==1,2] ~ X[R==1, -1], tau = tau))
-    mu <- rnorm(K)
+    mu <- rep(0, K)
     ## mu <- sort(mu, decreasing = TRUE)
     sigma <- rep(1, K)
     omega <- rep(1/K, K)
@@ -203,6 +203,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         gamma2c <- rnorm(xdim, gamma2, tunegamma2)
         beta2spc <- beta2sp
         muc <- rnorm(K, mu, tunemu)
+        if (method == "scale") {
+            muc <- rep(0, K)
+        }
         ## muc <- sort(muc, decreasing = TRUE)
         sigmac <- pmax(0.01, rnorm(K, sigma, tunesigma))
         ## delta omega as small uniform shift
@@ -215,6 +218,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         ## TODO mu constraint
         muc[K] <- - sum((muc * omegac)[-K])/omegac[K]
         if (omegac[K] < tol) muc[K] <- 0
+        if (method == "scale") {
+            muc <- rep(0, K)
+        }
         betayc <- rnorm(1, betay, tunebetay)
         pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
 
