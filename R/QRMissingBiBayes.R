@@ -68,14 +68,13 @@ QRMissingBiBayes <- function(y, R, X, tau = 0.5,
   att <- acc <- 0
 
   ## initial
-  beta1 <- 0
-  beta2 <- 0 # sp
   gamma1 <- coef(rq(y[, 1] ~ X[, -1], tau = tau))
+  beta1 <- 0
   gamma2 <- coef(rq(y[R==1,2] ~ X[R==1, -1], tau = tau))
+  beta2sp <- 0 # SP
   sigma1 <- 1
   sigma21 <- 1
   sigma21sp <- 0 # SP
-  beta2sp <- 0 # SP
   betay <- betaysp <- 0
   p <- num/n
 
@@ -113,10 +112,9 @@ QRMissingBiBayes <- function(y, R, X, tau = 0.5,
       ## Prior
       logprioro <- logpriorc <- 0
 
-      logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T)) + dnorm(beta1c, betapm, betapv, log = T) + dgamma(sigma1c, sigmaa/2, sigmab/2, log = T) + sum(dnorm(gamma2c, gammapm, gammapv, log = T)) + dgamma(sigma21c, sigmaa/2, sigmab/2, log = T) + dnorm(betayc, betapm, betapv, log = T) + dbeta(pc, alpha1/2, alpha2/2, log = T)
+      logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T)) + dnorm(beta1c, betapm, betapv, log = T) + dgamma(sigma1c, sigmaa, sigmab, log = T) + sum(dnorm(gamma2c, gammapm, gammapv, log = T)) + dgamma(sigma21c, sigmaa, sigmab, log = T) + dnorm(betayc, betapm, betapv, log = T) + dbeta(pc, alpha1, alpha2, log = T)
 
-      logprioro <- sum(dnorm(gamma1, gammapm, gammapv, log = T)) + dnorm(beta1, betapm, betapv, log = T) + dgamma(sigma1, sigmaa/2, sigmab/2, log = T) + sum(dnorm(gamma2, gammapm, gammapv, log = T)) + dgamma(sigma21, sigmaa/2, sigmab/2, log = T) + dnorm(betay, betapm, betapv, log = T) + dbeta(p, alpha1/2, alpha2/2, log = T)
-
+      logprioro <- sum(dnorm(gamma1, gammapm, gammapv, log = T)) + dnorm(beta1, betapm, betapv, log = T) + dgamma(sigma1, sigmaa, sigmab, log = T) + sum(dnorm(gamma2, gammapm, gammapv, log = T)) + dgamma(sigma21, sigmaa, sigmab, log = T) + dnorm(betay, betapm, betapv, log = T) + dbeta(p, alpha1, alpha2, log = T)
 
       ## additional prior
       logcgkc <- -theta1 - theta2
@@ -147,7 +145,8 @@ QRMissingBiBayes <- function(y, R, X, tau = 0.5,
       betaysp <- 0
 
     ## TUNE
-      if (att >= 100 & iscan < nburn) {
+      ## if (att >= 100 & iscan < nburn) {
+      if (FALSE) {
           tunegamma1 <- pmin(pmax(tunegamma1*ifelse(acc/att > arate, 1.5, 0.7), 0.01), 10)
           tunebeta1 <- pmin(pmax(tunebeta1*ifelse(acc/att > arate, 1.5, 0.7), 0.01), 10)
           tunesigma1 <- pmin(pmax(tunesigma1*ifelse(acc/att > arate, 1.5, 0.7), 0.01), 10)
