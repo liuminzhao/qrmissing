@@ -84,7 +84,8 @@ LLBiMix <- function(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
 ##' @author Minzhao Liu, Mike Daniels
 ##' @export
 QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
-                                mcmc, prior, method = "DP"
+                                mcmc, prior, method = "DP",
+                                sampling = "whole"
                                 ){
 
     ## data
@@ -198,74 +199,177 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
         loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
 
         att <- att + 1
-        gamma1c <- rnorm(xdim, gamma1, tunegamma1)
-        beta1c <- rnorm(1, beta1, tunebeta1)
-        gamma2c <- rnorm(xdim, gamma2, tunegamma2)
-        beta2spc <- beta2sp
-        muc <- rnorm(K, mu, tunemu)
-        if (method == "scale") {
-            muc <- rep(0, K)
+
+        if (sampling == 'whole') {
+            gamma1c <- rnorm(xdim, gamma1, tunegamma1)
+            beta1c <- rnorm(1, beta1, tunebeta1)
+            gamma2c <- rnorm(xdim, gamma2, tunegamma2)
+            beta2spc <- beta2sp
+            muc <- rnorm(K, mu, tunemu)
+            if (method == "scale") {
+                muc <- rep(0, K)
+            }
+            ## muc <- sort(muc, decreasing = TRUE)
+            sigmac <- pmax(0.01, rnorm(K, sigma, tunesigma))
+            ## delta omega as small uniform shift
+            dl <- tuneomega
+            dz <- runif(K, min = -1, max=1)/dl
+            dz[K] <- 0
+            zc <- z + dz
+            if (any(zc < 0) | any(zc > 1)) zc <- z
+            omegac <- z2omega(zc)
+            ## TODO mu constraint
+            muc[K] <- - sum((muc * omegac)[-K])/omegac[K]
+            if (omegac[K] < tol) muc[K] <- 0
+            if (method == "scale") {
+                muc <- rep(0, K)
+            }
+            betayc <- rnorm(1, betay, tunebetay)
+            pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
+
+            ## ll of candidate
+            loglikec <- LLBiMix(gamma1c, beta1c, gamma2c, beta2spc, muc, sigmac, muc, sigmac, omegac, omegac, omegac, omegac, betayc, 0, pc, tau, y, X, R, K, G1, G2)
+
+            ## prior
+            logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T)) +
+                dnorm(beta1c, betapm, betapv, log = T) +
+                    sum(dnorm(gamma2c, gammapm, gammapv, log = T)) +
+                        dnorm(beta2spc, betapm, betapv, log = T) +
+                            sum(dnorm(muc[-K], theta, sigmamu, log = T)) +
+                                sum(dgamma(sigmac^-1, sigmaa, rate = sigmab, log = T)) +
+                                    sum(dbeta(zc[-K], 1, alpha, log = T)) +
+                                        dnorm(betayc, betapm, betapv, log = T) +
+                                            dbeta(pc, alpha1, alpha2, log = T)
+
+            logprioro <- sum(dnorm(gamma1, gammapm, gammapv, log = T)) +
+                dnorm(beta1, betapm, betapv, log = T) +
+                    sum(dnorm(gamma2, gammapm, gammapv, log = T)) +
+                        dnorm(beta2sp, betapm, betapv, log = T) +
+                            sum(dnorm(mu[-K], theta, sigmamu, log = T)) +
+                                sum(dgamma(sigma^-1 , sigmaa, scale = sigmab, log = T)) +
+                                    sum(dbeta(z[-K], 1, alpha, log = T)) +
+                                        dnorm(betay , betapm, betapv, log = T) +
+                                            dbeta(p , alpha1, alpha2, log = T)
+
+            ## accept
+            ratio <- loglikec + logpriorc - loglikeo - logprioro
+            if (log(runif(1)) <= ratio) {
+                acc <- acc + 1
+                loglikeo <- loglikec
+
+                gamma1 <- gamma1c
+                beta1 <- beta1c
+                gamma2 <- gamma2c
+                beta2sp <- beta2spc
+                mu <- muc
+                sigma <- sigmac
+                z <- zc
+                omega <- omegac
+                betay <- betayc
+                p <- pc
+            }
+        } else if (sampling == 'element') {
+            gamma1c <- rnorm(xdim, gamma1, tunegamma1)
+            loglikec <- LLBiMix(gamma1c, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
+            logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T))
+            logprioro <- sum(dnorm(gamma1, gammapm, gammapv, log = T))
+            ratio <- loglikec + logpriorc - loglikeo - logprioro
+            if (log(runif(1)) <= ratio) {
+                loglikeo <- loglikec
+                gamma1 <- gamma1c
+            }
+
+            ## beta1
+            beta1c <- rnorm(1, beta1, tunebeta1)
+            loglikec <- LLBiMix(gamma1, beta1c, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
+            logpriorc <- dnorm(beta1c, betapm, betapv, log = T)
+            logprioro <- dnorm(beta1, betapm, betapv, log = T)
+            ratio <- loglikec + logpriorc - loglikeo - logprioro
+            if (log(runif(1)) <= ratio) {
+                loglikeo <- loglikec
+                beta1 <- beta1c
+            }
+
+            ## gamma2
+            gamma2c <- rnorm(xdim, gamma2, tunegamma2)
+            loglikec <- LLBiMix(gamma1, beta1, gamma2c, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
+            logpriorc <- sum(dnorm(gamma2c, gammapm, gammapv, log = T))
+            logprioro <- sum(dnorm(gamma2, gammapm, gammapv, log = T))
+            ratio <- loglikec + logpriorc - loglikeo - logprioro
+            if (log(runif(1)) <= ratio) {
+                loglikeo <- loglikec
+                gamma2 <- gamma2c
+            }
+
+            ## muc
+            muc <- rnorm(K, mu, tunemu)
+            muc[K] <- - sum((muc * omega)[-K])/omega[K]
+            if (method == "scale") {
+                muc <- rep(0, K)
+            }
+
+            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, muc, sigma, muc, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
+            logpriorc <- sum(dnorm(muc[-K], theta, sigmamu, log = T))
+            logprioro <- sum(dnorm(mu[-K], theta, sigmamu, log = T))
+            ratio <- loglikec + logpriorc - loglikeo - logprioro
+            if (log(runif(1)) <= ratio) {
+                loglikeo <- loglikec
+                mu <- muc
+            }
+
+            ## sigma
+            sigmac <- pmax(0.01, rnorm(K, sigma, tunesigma))
+            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigmac, mu, sigmac, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
+            logpriorc <- sum(dgamma(sigmac^-1, sigmaa, sigmab, log = T))
+            logprioro <- sum(dgamma(sigma^-1, sigmaa, sigmab, log = T))
+            ratio <- loglikec + logpriorc - loglikeo - logprioro
+            if (log(runif(1)) <= ratio) {
+                loglikeo <- loglikec
+                sigma <- sigmac
+            }
+
+            ## omega1
+            ## delta omega as small uniform shift
+            dl <- tuneomega
+            dz <- runif(K, min = -1, max=1)/dl
+            dz[K] <- 0
+            zc <- z + dz
+            if (any(zc < 0) | any(zc > 1)) zc <- z
+            omegac <- z2omega(zc)
+
+            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omegac, omegac, omegac, omegac, betay, 0, p, tau, y, X, R, K, G1, G2)
+            logpriorc <- sum(dbeta(zc[-K], 1, alpha, log = T))
+            logprioro <- sum(dbeta(z[-K], 1, alpha, log = T))
+            ratio <- loglikec + logpriorc - loglikeo - logprioro
+            if (log(runif(1)) <= ratio) {
+                loglikeo <- loglikec
+                omega <- omegac
+                z <- zc
+            }
+
+            ## betay
+            betayc <- rnorm(1, betay, tunebetay)
+            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betayc, 0, p, tau, y, X, R, K, G1, G2)
+            logpriorc <- dnorm(betayc, betapm, betapv, log = T)
+            logprioro <- dnorm(betay, betapm, betapv, log = T)
+            ratio <- loglikec + logpriorc - loglikeo - logprioro
+            if (log(runif(1)) <= ratio) {
+                loglikeo <- loglikec
+                betay <- betayc
+            }
+
+            ## p
+            pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
+            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, pc, tau, y, X, R, K, G1, G2)
+            logpriorc <- dbeta(pc, alpha1, alpha2, log = T)
+            logprioro <- dbeta(p, alpha1, alpha2, log = T)
+            ratio <- loglikec + logpriorc - loglikeo - logprioro
+            if (log(runif(1)) <= ratio) {
+                loglikeo <- loglikec
+                p <- pc
+            }
+
         }
-        ## muc <- sort(muc, decreasing = TRUE)
-        sigmac <- pmax(0.01, rnorm(K, sigma, tunesigma))
-        ## delta omega as small uniform shift
-        dl <- tuneomega
-        dz <- runif(K, min = -1, max=1)/dl
-        dz[K] <- 0
-        zc <- z + dz
-        if (any(zc < 0) | any(zc > 1)) zc <- z
-        omegac <- z2omega(zc)
-        ## TODO mu constraint
-        muc[K] <- - sum((muc * omegac)[-K])/omegac[K]
-        if (omegac[K] < tol) muc[K] <- 0
-        if (method == "scale") {
-            muc <- rep(0, K)
-        }
-        betayc <- rnorm(1, betay, tunebetay)
-        pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
-
-        ## ll of candidate
-        loglikec <- LLBiMix(gamma1c, beta1c, gamma2c, beta2spc, muc, sigmac, muc, sigmac, omegac, omegac, omegac, omegac, betayc, 0, pc, tau, y, X, R, K, G1, G2)
-
-        ## prior
-        logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T)) +
-            dnorm(beta1c, betapm, betapv, log = T) +
-                sum(dnorm(gamma2c, gammapm, gammapv, log = T)) +
-                    dnorm(beta2spc, betapm, betapv, log = T) +
-                        sum(dnorm(muc[-K], theta, sigmamu, log = T)) +
-                            sum(dgamma(sigmac^-1, sigmaa, rate = sigmab, log = T)) +
-                                sum(dbeta(zc[-K], 1, alpha, log = T)) +
-                                    dnorm(betayc, betapm, betapv, log = T) +
-                                        dbeta(pc, alpha1, alpha2, log = T)
-
-        logprioro <- sum(dnorm(gamma1, gammapm, gammapv, log = T)) +
-            dnorm(beta1, betapm, betapv, log = T) +
-                sum(dnorm(gamma2, gammapm, gammapv, log = T)) +
-                    dnorm(beta2sp, betapm, betapv, log = T) +
-                        sum(dnorm(mu[-K], theta, sigmamu, log = T)) +
-                            sum(dgamma(sigma^-1 , sigmaa, scale = sigmab, log = T)) +
-                                sum(dbeta(z[-K], 1, alpha, log = T)) +
-                                    dnorm(betay , betapm, betapv, log = T) +
-                                        dbeta(p , alpha1, alpha2, log = T)
-
-        ## accept
-        ratio <- loglikec + logpriorc - loglikeo - logprioro
-        if (log(runif(1)) <= ratio) {
-            acc <- acc + 1
-            loglikeo <- loglikec
-
-            gamma1 <- gamma1c
-            beta1 <- beta1c
-            gamma2 <- gamma2c
-            beta2sp <- beta2spc
-            mu <- muc
-            sigma <- sigmac
-            z <- zc
-            omega <- omegac
-            betay <- betayc
-            p <- pc
-        }
-
         ## update beta2sp separately
         beta2sp <- rnorm(1, beta2pm, beta2pv)
 
@@ -456,6 +560,7 @@ plot.QRMissingBiBayesMix <- function(mod, full = FALSE, ...){
 z2omega <- function(z){
     K <- length(z)
     omega <- rep(0, K)
+    if (K == 1) return(z)
     omega[1] <- z[1]
     for (i in 2:K){
         omega[i] <- z[i]*prod(1 - z[1:(i - 1)])
