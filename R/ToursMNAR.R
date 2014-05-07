@@ -36,18 +36,17 @@ ToursMNAR <- function(y, R, X, tau = 0.5, sp = NULL,
 
   ## initial
   if (is.null(sp)) {
-    sp <- rep(0, xdim  + 2)
-    sp[1] <- 0.36
+    sp <- 0.36
   }
   if (!is.null(init)){
     param <- init
   } else {
     lmcoef1 <- coef(rq(y[,1] ~ X[,-1], tau = tau))
     lmcoef2 <- coef(rq(y[,2][R == 1] ~ X[R == 1,-1], tau = tau))
-    param <- rep(0, 3*xdim + 5)
+    param <- rep(0, 2*xdim + 5)
     param[1:xdim] <- lmcoef1
-    param[(2*xdim + 1):(3*xdim)] <- lmcoef2
-    param[3*xdim + 2] = log(num/(n-num))
+    param[(xdim + 1):(2*xdim)] <- lmcoef2
+    param[2*xdim + 5] = log(num/(n-num))
   }
 
   ## nll
@@ -72,7 +71,8 @@ ToursMNAR <- function(y, R, X, tau = 0.5, sp = NULL,
   }
 
   ## residuals
-  res <- residualstoursmnar(mod$par, y, X, R, tau, sp)
+  ## res <- residualstoursmnar(mod$par, y, X, R, tau, sp)
+  res <- NULL
 
   ## Hessian matrix and grad
   if (hess) {
@@ -81,7 +81,7 @@ ToursMNAR <- function(y, R, X, tau = 0.5, sp = NULL,
     Jninv <- solve(Hessian)
     se <- matrix(0, 2, xdim)
     se[1, ] <- sqrt(diag(Jninv)[1:xdim])
-    se[2, ] <- sqrt(diag(Jninv)[(2*xdim + 1):(3*xdim)])
+    se[2, ] <- sqrt(diag(Jninv)[(xdim + 1):(2*xdim)])
     rownames(se) <- c('Q1', 'Q2')
   } else {
     Hessian <- NULL
@@ -124,15 +124,16 @@ ll2toursmnar <- function(param, y, X, R, tau, sp){
   num <- sum(R)
 
   gamma1 <- param[1:xdim]
-  beta1 <- param[(xdim + 1):(2*xdim)]
-  sigma1 <- c(exp(param[3*xdim + 3]), exp(param[3*xdim + 4]))
-  gamma2 <- param[(2*xdim + 1):(3*xdim)]
-  beta2sp <- sp[1:xdim] # SP for R = 0
-  sigma21 <- exp(param[3*xdim + 5])
-  sigma21sp <- sp[xdim + 2]  # SP for R = 0
-  betay <- param[3*xdim + 1] # for R = 1
-  betaysp <- 1 # SP for R = 0
-  p <- exp(param[3*xdim + 2])/(1 + exp(param[3*xdim + 2]))
+  gamma2 <- param[(xdim + 1):(2*xdim)]
+  beta1 <- param[2*xdim + 1]
+  sigma1 <- exp(param[2*xdim + 2])
+  betay <- param[2*xdim + 3] # for R = 1
+  sigma21 <- exp(param[2*xdim + 4])
+  p <- exp(param[2*xdim + 5])/(1 + exp(param[2*xdim + 5]))
+
+  beta2sp <- 0 # SP for R = 0
+  sigma21sp <- 0
+  betaysp <- 0
 
   d <- matrix(0, n, 2)
   d <- .Fortran("mydelta2bise",
@@ -154,12 +155,12 @@ ll2toursmnar <- function(param, y, X, R, tau, sp){
 
   d <- matrix(d, n, 2)
 
-  lp1 <- X %*% beta1
+  lp1 <- beta1
   mu11 <- d[, 1] + lp1
   mu10 <- d[, 1] - lp1
   mu21 <- d[, 2] + betay * y[, 1]
-  ll11 <- sum(dnorm(y[, 1], mu11, sigma1[1], log=T)[R==1])
-  ll10 <- sum(dnorm(y[, 1], mu10, sigma1[2], log=T)[R==0])
+  ll11 <- sum(dnorm(y[, 1], mu11, sigma1, log=T)[R==1])
+  ll10 <- sum(dnorm(y[, 1], mu10, sigma1, log=T)[R==0])
   ll21 <- sum(dnorm(y[, 2], mu21, sigma21, log = T)[R==1])
   ans <- ll11 + ll10 + ll21 + num*log(p) + (n - num)*log(1 - p)
 
@@ -185,15 +186,16 @@ residualstoursmnar <- function(param, y, X, R, tau, sp){
   num <- sum(R)
 
   gamma1 <- param[1:xdim]
-  beta1 <- param[(xdim + 1):(2*xdim)]
-  sigma1 <- c(exp(param[3*xdim + 3]), exp(param[3*xdim + 4]))
-  gamma2 <- param[(2*xdim + 1):(3*xdim)]
-  beta2sp <- sp[1:xdim] # SP for R = 0
-  sigma21 <- exp(param[3*xdim + 5])
-  sigma21sp <- sp[xdim + 2]  # SP for R = 0
-  betay <- param[3*xdim + 1] # for R = 1
-  betaysp <- 1 # SP for R = 0
-  p <- exp(param[3*xdim + 2])/(1 + exp(param[3*xdim + 2]))
+  gamma2 <- param[(xdim + 1):(2*xdim)]
+  beta1 <- param[2*xdim + 1]
+  sigma1 <- exp(param[2*xdim + 2])
+  betay <- param[2*xdim + 3] # for R = 1
+  sigma21 <- exp(param[2*xdim + 4])
+  p <- exp(param[2*xdim + 5])/(1 + exp(param[2*xdim + 5]))
+
+  beta2sp <- 0 # SP for R = 0
+  sigma21sp <- 0
+  betaysp <- 0
 
   d <- matrix(0, n, 2)
   d <- .Fortran("mydelta2bise",
@@ -215,14 +217,14 @@ residualstoursmnar <- function(param, y, X, R, tau, sp){
 
   d <- matrix(d, n, 2)
 
-  lp1 <- X %*% beta1
+  lp1 <- beta1
   mu11 <- d[, 1] + lp1
   mu10 <- d[, 1] - lp1
   mu21 <- d[, 2] + betay * y[, 1]
 
   res <- matrix(NA, n, 2)
-  res[R == 1, 1] <- (y[R==1, 1] - mu11[R == 1])/sigma1[1]
-  res[R == 0, 1] <- (y[R==0, 1] - mu10[R == 0])/sigma1[2]
+  res[R == 1, 1] <- (y[R==1, 1] - mu11[R == 1])/sigma1
+  res[R == 0, 1] <- (y[R==0, 1] - mu10[R == 0])/sigma1
   res[R == 1, 2] <- (y[R==1, 2] - mu21[R == 1])/sigma21
 
   return(res)
