@@ -501,6 +501,20 @@ coef.QRMissingBiBayesMix <- function(mod, ...){
 }
 
 ##' @rdname QRMissingBiBayesMix
+##' @method coef QRMissingBiBayesMix
+##' @S3method coef QRMissingBiBayesMix
+confint.QRMissingBiBayesMix <- function(mod, ...){
+    nsave <- mod$mcmc$nsave
+    nburn <- mod$mcmc$nburn
+
+    gamma1 <- apply(mod$gamma1save, 2, function(x) quantile(x, probs = c(0.025, 0.975)))
+    gamma2 <- apply(mod$gamma2save, 2, function(x) quantile(x, probs = c(0.025, 0.975)))
+    return(list(gamma1 = gamma1, gamma2 = gamma2))
+}
+
+
+
+##' @rdname QRMissingBiBayesMix
 ##' @method summary QRMissingBiBayesMix
 ##' @S3method summary QRMissingBiBayesMix
 summary.QRMissingBiBayesMix <- function(mod, ...){
