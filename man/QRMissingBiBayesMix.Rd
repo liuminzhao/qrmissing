@@ -5,13 +5,14 @@
 \alias{summary.QRMissingBiBayesMix}
 \title{Quantile Regression in the Presence of Monotone Missingness; Bivariate case}
 \usage{
-QRMissingBiBayesMix(y, R, X, tau = 0.5, mcmc, prior)
+QRMissingBiBayesMix(y, R, X, tau = 0.5, mcmc, prior, method = "DP",
+  sampling = "whole")
 
 \method{coef}{QRMissingBiBayesMix}(mod, ...)
 
 \method{summary}{QRMissingBiBayesMix}(mod, ...)
 
-\method{plot}{QRMissingBiBayesMix}(mod, ...)
+\method{plot}{QRMissingBiBayesMix}(mod, full = FALSE, ...)
 }
 \arguments{
   \item{y}{}
