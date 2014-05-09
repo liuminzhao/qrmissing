@@ -500,10 +500,17 @@ coef.QRMissingBiBayesMix <- function(mod, ...){
                 gamma2 = gamma2, betay = betay, p = p))
 }
 
-##' @rdname QRMissingBiBayesMix
-##' @method coef QRMissingBiBayesMix
-##' @S3method coef QRMissingBiBayesMix
-confint.QRMissingBiBayesMix <- function(mod, ...){
+
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title Confint function
+##' @param mod
+##' @param ...
+##' @return confint
+##' @author Minzhao Liu
+##' @export
+confintQRMissingBiBayesMix <- function(mod){
     nsave <- mod$mcmc$nsave
     nburn <- mod$mcmc$nburn
 

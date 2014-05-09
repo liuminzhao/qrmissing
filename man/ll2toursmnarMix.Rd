@@ -2,7 +2,7 @@
 \alias{ll2toursmnarMix}
 \title{observed negative log likelihood}
 \usage{
-ll2toursmnarMix(param, y, X, R, tau, sp, K)
+ll2toursmnarMix(param, y, X, R, tau, sp)
 }
 \arguments{
   \item{param}{}
