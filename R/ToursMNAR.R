@@ -131,12 +131,12 @@ ll2toursmnar <- function(param, y, X, R, tau, sp){
   sigma21 <- exp(param[2*xdim + 4])
   p <- exp(param[2*xdim + 5])/(1 + exp(param[2*xdim + 5]))
 
-  beta2sp <- 0 # SP for R = 0
+  beta2sp <- sp # SP for R = 0
   sigma21sp <- 0
   betaysp <- 0
 
   d <- matrix(0, n, 2)
-  d <- .Fortran("mydelta2bise",
+  d <- .Fortran("mydelta2bisemnar",
                 x = as.double(X),
                 gamma1 = as.double(gamma1),
                 beta1 = as.double(beta1),
