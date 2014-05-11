@@ -44,10 +44,10 @@ ToursMNARMixMLE <- function(y, R, X, tau = 0.5, sp = NULL,
     } else {
         lmcoef1 <- coef(rq(y[,1] ~ X[,-1], tau = tau))
         lmcoef2 <- coef(rq(y[,2][R == 1] ~ X[R == 1,-1], tau = tau))
-        param <- rep(0, 2*xdim + 6*K - 1)
+        param <- rep(0, 2*xdim + 3*K + 1)
         param[1:xdim] <- lmcoef1
         param[(xdim + 1):(2*xdim)] <- lmcoef2
-        param[2*xdim + 4*K + 1] = qlogis(num/n)
+        param[2*xdim + 2*K + 2] = qlogis(num/n)
     }
 
     ## nll
@@ -127,41 +127,37 @@ ll2toursmnarMix <- function(param, y, X, R, tau, sp){
 
     gamma1 <- param[1:xdim]
     gamma2 <- param[(xdim + 1):(2*xdim)]
-    sigma1 <- exp(param[(xdim*2 + 1):(xdim*2 + K)])
-    sigma2 <- exp(param[(xdim*2 + 1 + K):(xdim*2 + K*2)])
-    omega1 <- omega2 <- rep(0, K)
-    omega1[1:(K-1)] <- exp(param[(xdim*2 + K*2 + 1):(xdim*2 + K*3 - 1)])/(sum(exp(param[(xdim*2 + K*2 + 1):(xdim*2 + K*3 - 1)])) + 1)
-    omega1[K] <- 1/(sum(exp(param[(xdim*2 + K*2 + 1):(xdim*2 + K*3 - 1)])) + 1)
-    omega2[1:(K-1)] <- exp(param[(xdim*2 + K*3):(xdim*2 + K*4 - 2)])/(sum(exp(param[(xdim*2 + K*3):(xdim*2 + K*4 - 2)])) + 1)
-    omega2[K] <- 1/(sum(exp(param[(xdim*2 + K*3):(xdim*2 + K*4 - 2)])) + 1)
-    beta1 <- param[2*xdim + K*4 - 1]
-    betay <- param[2*xdim + K*4] # for R = 1
-    p <- plogis(param[2*xdim + K*4 + 1])
-    mu1 <- param[(xdim*2 + 4*K + 2):(xdim*2 + K*5)]
-    mu2 <- param[(xdim*2 + 5*K + 1):(xdim*2 + K*6 - 1)]
+    sigma <- exp(param[(xdim*2 + 1):(xdim*2 + K)])
+    omega <- rep(0, K)
+    z <- plogis(param[(xdim*2 + K + 1):(xdim*2 + K*2 - 1)])
+    z[K] <- 1
+    omega <- z2omega(z)
+    beta1 <- param[2*xdim + K*2]
+    betay <- param[2*xdim + K*2 + 1] # for R = 1
+    p <- plogis(param[2*xdim + K*2 + 2])
+    mu <- param[(xdim*2 + 2*K + 3):(xdim*2 + K*3 + 1)]
 
     beta2sp <- sp # SP for R = 0
     sigma21sp <- 0  # SP for R = 0
     betaysp <- 0 # SP for R = 0
 
-    mu1[K] <- - sum(mu1 * omega1[1:(K-1)])/omega1[K]
-    mu2[K] <- - sum(mu2 * omega2[1:(K-1)])/omega2[K]
+    mu[K] <- - sum(mu * omega[1:(K-1)])/omega[K]
 
     dd <- matrix(0, n, 2)
-    dd <- .Fortran("mydelta2bisemix",
+    dd <- .Fortran("mydelta2bisemixmnar",
                    x = as.double(X),
                    gamma1 = as.double(gamma1),
                    beta1 = as.double(beta1),
                    gamma2 = as.double(gamma2),
                    beta2sp = as.double(beta2sp),
-                   mu1 = as.double(mu1),
-                   sigma1 = as.double(sigma1),
-                   mu2 = as.double(mu2),
-                   sigma2 = as.double(sigma2),
-                   omega11 = as.double(omega1),
-                   omega10 = as.double(omega1),
-                   omega21 = as.double(omega2),
-                   omega20sp = as.double(omega2),
+                   mu1 = as.double(mu),
+                   sigma1 = as.double(sigma),
+                   mu2 = as.double(mu),
+                   sigma2 = as.double(sigma),
+                   omega11 = as.double(omega),
+                   omega10 = as.double(omega),
+                   omega21 = as.double(omega),
+                   omega20sp = as.double(omega),
                    betay = as.double(betay),
                    betaysp = as.double(betaysp),
                    p = as.double(p),
@@ -181,9 +177,9 @@ ll2toursmnarMix <- function(param, y, X, R, tau, sp){
 
     for (i in 1:n){
         if (R[i] == 1) {
-            ans <- ans + log(p) + log(sum(omega1 * dnorm(y[i, 1], mu11[i] + mu1, sigma1))) + log(sum(omega2 * dnorm(y[i, 2], mu21[i] + mu2, sigma2)))
+            ans <- ans + log(p) + log(sum(omega * dnorm(y[i, 1], mu11[i] + mu, sigma))) + log(sum(omega * dnorm(y[i, 2], mu21[i] + mu, sigma)))
         } else {
-            ans <- ans + log(1 - p) + log(sum(omega1 * dnorm(y[i, 1], mu10[i] + mu1, sigma1)))
+            ans <- ans + log(1 - p) + log(sum(omega * dnorm(y[i, 1], mu10[i] + mu, sigma)))
         }
     }
 

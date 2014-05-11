@@ -193,7 +193,7 @@ residualstoursmnar <- function(param, y, X, R, tau, sp){
   sigma21 <- exp(param[2*xdim + 4])
   p <- exp(param[2*xdim + 5])/(1 + exp(param[2*xdim + 5]))
 
-  beta2sp <- 0 # SP for R = 0
+  beta2sp <- sp # SP for R = 0
   sigma21sp <- 0
   betaysp <- 0
 
