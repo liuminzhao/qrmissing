@@ -52,7 +52,7 @@ ToursMNARMixMLE <- function(y, R, X, tau = 0.5, sp = NULL,
 
     ## nll
     nlltoursmnar <- function(param){
-        ll2toursmnar(param, y, X, R, tau, sp)
+        ll2toursmnarMix(param, y, X, R, tau, sp)
     }
 
     ## optimize nll to get MLE
