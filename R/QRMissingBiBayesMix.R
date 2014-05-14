@@ -625,29 +625,16 @@ summary.QRMissingBiBayesMix <- function(mod, ...){
 plot.QRMissingBiBayesMix <- function(mod, full = FALSE, ...){
     xdim <- mod$xdim
     K <- mod$K
-    for (i in 1:xdim){
-        plot(ts(mod$gamma1save[, i]), main = paste('gamma1', i, sep = ''))
-    }
-    for (i in 1:xdim){
-        plot(ts(mod$gamma2save[, i]), main = paste('gamma2', i, sep = ''))
-    }
-
+    plot(ts(mod$gamma1save), main = 'gamma1')
+    plot(ts(mod$gamma2save), main = 'gamma2')
     plot(ts(mod$beta2spsave), main = 'beat2sp')
     plot(ts(mod$betaysave), main = 'beaty')
     plot(ts(mod$psave), main = 'p')
 
     if (full) {
-        for (i in 1:K){
-            plot(ts(mod$musave[, i]), main = 'mu')
-        }
-
-        for (i in 1:K){
-            plot(ts(mod$sigmasave[, i]), main = 'sigma')
-        }
-
-        for (i in 1:K){
-            plot(ts(mod$omegasave[, i]), main = 'omega')
-        }
+        plot(ts(mod$musave), main = 'mu')
+        plot(ts(mod$sigmasave), main = 'sigma')
+        plot(ts(mod$omegasave), main = 'omega')
     }
 
 }
