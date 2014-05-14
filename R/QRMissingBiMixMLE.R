@@ -29,7 +29,8 @@ QRMissingBiMixMLE <- function(y, R, X, tau = 0.5, sp = NULL,
                               init = NULL, method = 'uobyqa',
                               control = list(maxit = 1000,
                                   trace = 0), hess = FALSE,
-                              K = 1){
+                              K = 2,
+                              model = 'slope'){
     ## data
     n <- dim(y)[1]
     num <- sum(R)
@@ -37,7 +38,11 @@ QRMissingBiMixMLE <- function(y, R, X, tau = 0.5, sp = NULL,
 
     ## initial
     if (is.null(sp)) {
-        sp <- 0 # beta2sp
+        if (model == 'int'){
+            sp <- 0
+        } else if (model == 'slope'){
+            sp <- rep(0, xdim)
+        }
     }
     if (!is.null(init)){
         param <- init
@@ -45,19 +50,26 @@ QRMissingBiMixMLE <- function(y, R, X, tau = 0.5, sp = NULL,
         lmcoef1 <- coef(rq(y[,1] ~ X[,-1], tau = tau))
         lmcoef2 <- coef(rq(y[,2][R == 1] ~ X[R == 1,-1], tau = tau))
 
-        ## param = (q1(q), q2(q), sigma(K),
-        ## omega(K-1), beta1, betay, p
-        ## mu(K-1),
-        ## thus dim(param) = 2q + 3K + 1
-        param <- rep(0, 2*xdim + 3*K + 1)
-        param[1:xdim] <- lmcoef1
-        param[(xdim + 1):(2*xdim)] <- lmcoef2
-        param[2*xdim + 2*K + 2] = qlogis(num/n)
+        if (model == 'int' ) {
+            param <- rep(0, 2*xdim + 3*K + 1)
+            param[1:xdim] <- lmcoef1
+            param[(xdim + 1):(2*xdim)] <- lmcoef2
+            param[2*xdim + 2*K + 2] = qlogis(num/n)
+        } else if (model == 'slope') {
+            ## param = (q1(q), q2(q), sigma(K),
+            ## omega(K-1), beta1(q), betay, p
+            ## mu(K-1),
+            ## thus dim(param) = 3q + 3K
+            param <- rep(0, 3*xdim + 3*K)
+            param[1:xdim] <- lmcoef1
+            param[(xdim + 1):(2*xdim)] <- lmcoef2
+            param[3*xdim + 3*K] = qlogis(num/n)
+        }
     }
 
     ## nll
     nll <- function(param){
-        ll2Mix(param, y, X, R, tau, sp, K)
+        ll2Mix(param, y, X, R, tau, sp, K, model)
     }
 
     ## optimize nll to get MLE
@@ -105,6 +117,7 @@ QRMissingBiMixMLE <- function(y, R, X, tau = 0.5, sp = NULL,
     mod$se <- se
     mod$res <- res
     mod$K <- K
+    mod$model <- model
 
     class(mod) <- "QRMissingBiMixMLE"
 
@@ -118,18 +131,33 @@ QRMissingBiMixMLE <- function(y, R, X, tau = 0.5, sp = NULL,
 coef.QRMissingBiMixMLE <- function(mod, ...){
     xdim <- q <- mod$xdim
     K <- mod$K
+    model <- mod$model
+
     param <- mod$par
     gamma1 <- mod$par[c(1:q)]
     gamma2 <- mod$par[(q + 1):(2*q)]
-    sigma <- exp(param[(xdim*2 + 1):(xdim*2 + K)])
-    omega <- rep(0, K)
-    z <- plogis(param[(xdim*2 + K + 1):(xdim*2 + K*2 - 1)])
-    z[K] <- 1
-    omega <- z2omega(z)
-    beta1 <- param[2*xdim + K*2]
-    betay <- param[2*xdim + K*2 + 1] # for R = 1
-    p <- plogis(param[2*xdim + K*2 + 2])
-    mu <- param[(xdim*2 + 2*K + 3):(xdim*2 + K*3 + 1)]
+
+    if (model == 'int') {
+        sigma <- exp(param[(xdim*2 + 1):(xdim*2 + K)])
+        omega <- rep(0, K)
+        z <- plogis(param[(xdim*2 + K + 1):(xdim*2 + K*2 - 1)])
+        z[K] <- 1
+        omega <- z2omega(z)
+        beta1 <- param[2*xdim + K*2]
+        betay <- param[2*xdim + K*2 + 1] # for R = 1
+        p <- plogis(param[2*xdim + K*2 + 2])
+        mu <- param[(xdim*2 + 2*K + 3):(xdim*2 + K*3 + 1)]
+    } else if (model == 'slope') {
+        beta1 <- param[(2*q + 1):(3*q)]
+        sigma <- exp(param[(3*q + 1):(q*3 + K)])
+        omega <- rep(0, K)
+        z <- plogis(param[(q*3 + K + 1):(q*3 + K*2 - 1)])
+        z[K] <- 1
+        omega <- z2omega(z)
+        mu <- param[(xdim*3 + 2*K):(xdim*3 + K*3 - 2)]
+        betay <- param[3*xdim + K*3 - 1]
+        p <- plogis(param[3*xdim + K*3])
+    }
 
     return(list(gamma1 = gamma1, gamma2 = gamma2,
                 beta1 = beta1, betay = betay,
@@ -158,10 +186,16 @@ summary.QRMissingBiMixMLE <- function(mod, ...){
     param <- mod$par
     q <- mod$xdim
     K <- mod$K
+    model <- mod$model
+    if (model == 'int') {
+        p <- plogis(param[2*xdim + K*2 + 2])
+    } else if (model == 'slope') {
+        p <- plogis(param[3*q + 3*K])
+    }
 
     cat('Number of observations: ', n, '\n')
     cat('Sample proportion of observed data: ', sum(R)/n, '\n')
-    cat('Estimated pi:', plogis(param[2*q + 4*K + 1]), '\n')
+    cat('Estimated pi:', p, '\n')
     cat('Quantile: ', tau, '\n')
     cat('Number of components: ', K, '\n')
     cat('Optimization method: ', mod$method, '\n')
@@ -211,26 +245,40 @@ plot.QRMissingBiMixMLE <- function(mod, ...){
 ##' @useDynLib qrmissing
 ##' @author Minzhao Liu
 ##' @export
-ll2Mix <- function(param, y, X, R, tau, sp, K){
+ll2Mix <- function(param, y, X, R, tau, sp, K, model){
     n <- dim(y)[1]
-    xdim <- dim(X)[2]
+    xdim <- q <- dim(X)[2]
     num <- sum(R)
 
     ## param = (q1(q), q2(q), sigma1(K), sigma2(K),
     ## omega1(K-1), omega2(K-1), beta1, betay, p),
     ## thus dim(param) = 2q + 4K + 1
 
-    gamma1 <- param[1:xdim]
-    gamma2 <- param[(xdim + 1):(2*xdim)]
-    sigma <- exp(param[(xdim*2 + 1):(xdim*2 + K)])
-    omega <- rep(0, K)
-    z <- plogis(param[(xdim*2 + K + 1):(xdim*2 + K*2 - 1)])
-    z[K] <- 1
-    omega <- z2omega(z)
-    beta1 <- param[2*xdim + K*2]
-    betay <- param[2*xdim + K*2 + 1] # for R = 1
-    p <- plogis(param[2*xdim + K*2 + 2])
-    mu <- param[(xdim*2 + 2*K + 3):(xdim*2 + K*3 + 1)]
+    if (model == 'int'){
+        gamma1 <- param[1:xdim]
+        gamma2 <- param[(xdim + 1):(2*xdim)]
+        sigma <- exp(param[(xdim*2 + 1):(xdim*2 + K)])
+        omega <- rep(0, K)
+        z <- plogis(param[(xdim*2 + K + 1):(xdim*2 + K*2 - 1)])
+        z[K] <- 1
+        omega <- z2omega(z)
+        beta1 <- param[2*xdim + K*2]
+        betay <- param[2*xdim + K*2 + 1] # for R = 1
+        p <- plogis(param[2*xdim + K*2 + 2])
+        mu <- param[(xdim*2 + 2*K + 3):(xdim*2 + K*3 + 1)]
+    } else if (model == 'slope') {
+        gamma1 <- param[1:xdim]
+        gamma2 <- param[(xdim + 1):(2*xdim)]
+        beta1 <- param[(2*q + 1):(3*q)]
+        sigma <- exp(param[(3*q + 1):(q*3 + K)])
+        omega <- rep(0, K)
+        z <- plogis(param[(q*3 + K + 1):(q*3 + K*2 - 1)])
+        z[K] <- 1
+        omega <- z2omega(z)
+        mu <- param[(xdim*3 + 2*K):(xdim*3 + K*3 - 2)]
+        betay <- param[3*xdim + K*3 - 1]
+        p <- plogis(param[3*xdim + K*3])
+    }
 
     beta2sp <- sp # SP for R = 0
     sigma21sp <- 0  # SP for R = 0
@@ -239,31 +287,63 @@ ll2Mix <- function(param, y, X, R, tau, sp, K){
     mu[K] <- - sum(mu * omega[1:(K-1)])/omega[K]
 
     dd <- matrix(0, n, 2)
-    dd <- .Fortran("mydelta2bisemix",
-                   x = as.double(X),
-                   gamma1 = as.double(gamma1),
-                   beta1 = as.double(beta1),
-                   gamma2 = as.double(gamma2),
-                   beta2sp = as.double(beta2sp),
-                   mu1 = as.double(mu),
-                   sigma1 = as.double(sigma),
-                   mu2 = as.double(mu),
-                   sigma2 = as.double(sigma),
-                   omega11 = as.double(omega),
-                   omega10 = as.double(omega),
-                   omega21 = as.double(omega),
-                   omega20sp = as.double(omega),
-                   betay = as.double(betay),
-                   betaysp = as.double(betaysp),
-                   p = as.double(p),
-                   tau = as.double(tau),
-                   n = as.integer(n),
-                   xdim = as.integer(xdim),
-                   delta = as.double(dd),
-                   K = as.integer(K))$delta
+
+    if (model == 'int') {
+        dd <- .Fortran("mydelta2bisemix",
+                       x = as.double(X),
+                       gamma1 = as.double(gamma1),
+                       beta1 = as.double(beta1),
+                       gamma2 = as.double(gamma2),
+                       beta2sp = as.double(beta2sp),
+                       mu1 = as.double(mu),
+                       sigma1 = as.double(sigma),
+                       mu2 = as.double(mu),
+                       sigma2 = as.double(sigma),
+                       omega11 = as.double(omega),
+                       omega10 = as.double(omega),
+                       omega21 = as.double(omega),
+                       omega20sp = as.double(omega),
+                       betay = as.double(betay),
+                       betaysp = as.double(betaysp),
+                       p = as.double(p),
+                       tau = as.double(tau),
+                       n = as.integer(n),
+                       xdim = as.integer(xdim),
+                       delta = as.double(dd),
+                       K = as.integer(K))$delta
+    } else if (model == 'slope') {
+        dd <- .Fortran("mydelta2bisemixslope",
+                       x = as.double(X),
+                       gamma1 = as.double(gamma1),
+                       beta1 = as.double(beta1),
+                       gamma2 = as.double(gamma2),
+                       beta2sp = as.double(beta2sp),
+                       mu1 = as.double(mu),
+                       sigma1 = as.double(sigma),
+                       mu2 = as.double(mu),
+                       sigma2 = as.double(sigma),
+                       omega11 = as.double(omega),
+                       omega10 = as.double(omega),
+                       omega21 = as.double(omega),
+                       omega20sp = as.double(omega),
+                       betay = as.double(betay),
+                       betaysp = as.double(betaysp),
+                       p = as.double(p),
+                       tau = as.double(tau),
+                       n = as.integer(n),
+                       xdim = as.integer(xdim),
+                       delta = as.double(dd),
+                       K = as.integer(K))$delta
+    }
+
     dd <- matrix(dd, n, 2)
 
-    lp1 <- beta1
+    if (model == 'int') {
+        lp1 <- beta1
+    } else if (model == 'slope') {
+        lp1 <- X %*% beta1
+    }
+
     mu11 <- dd[, 1] + lp1
     mu10 <- dd[, 1] - lp1
     mu21 <- dd[, 2] + betay * y[, 1]
