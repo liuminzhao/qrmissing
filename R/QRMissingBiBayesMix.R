@@ -22,37 +22,68 @@
 ##' @export
 LLBiMix <- function(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
                     mu2, sigma2, omega11, omega10, omega21, omega20sp,
-                    betay, betaysp, p, tau, y, X, R, K, G1, G2){
+                    betay, betaysp, p, tau, y, X, R, K, G1, G2,
+                    model){
+
     n <- dim(y)[1]
     xdim <- dim(X)[2]
     num <- sum(R)
 
     dd <- matrix(0, n, 2)
-    dd <- .Fortran("mydelta2bisemix",
-                   x = as.double(X),
-                   gamma1 = as.double(gamma1),
-                   beta1 = as.double(beta1),
-                   gamma2 = as.double(gamma2),
-                   beta2sp = as.double(beta2sp),
-                   mu1 = as.double(mu1),
-                   sigma1 = as.double(sigma1),
-                   mu2 = as.double(mu2),
-                   sigma2 = as.double(sigma2),
-                   omega11 = as.double(omega11),
-                   omega10 = as.double(omega10),
-                   omega21 = as.double(omega21),
-                   omega20sp = as.double(omega20sp),
-                   betay = as.double(betay),
-                   betaysp = as.double(betaysp),
-                   p = as.double(p),
-                   tau = as.double(tau),
-                   n = as.integer(n),
-                   xdim = as.integer(xdim),
-                   delta = as.double(dd),
-                   K = as.integer(K))$delta
+    if (model == 'int') {
+        dd <- .Fortran("mydelta2bisemix",
+                       x = as.double(X),
+                       gamma1 = as.double(gamma1),
+                       beta1 = as.double(beta1),
+                       gamma2 = as.double(gamma2),
+                       beta2sp = as.double(beta2sp),
+                       mu1 = as.double(mu1),
+                       sigma1 = as.double(sigma1),
+                       mu2 = as.double(mu2),
+                       sigma2 = as.double(sigma2),
+                       omega11 = as.double(omega11),
+                       omega10 = as.double(omega10),
+                       omega21 = as.double(omega21),
+                       omega20sp = as.double(omega20sp),
+                       betay = as.double(betay),
+                       betaysp = as.double(betaysp),
+                       p = as.double(p),
+                       tau = as.double(tau),
+                       n = as.integer(n),
+                       xdim = as.integer(xdim),
+                       delta = as.double(dd),
+                       K = as.integer(K))$delta
+    } else if (model == 'slope') {
+        dd <- .Fortran("mydelta2bisemixslope",
+                       x = as.double(X),
+                       gamma1 = as.double(gamma1),
+                       beta1 = as.double(beta1),
+                       gamma2 = as.double(gamma2),
+                       beta2sp = as.double(beta2sp),
+                       mu1 = as.double(mu1),
+                       sigma1 = as.double(sigma1),
+                       mu2 = as.double(mu2),
+                       sigma2 = as.double(sigma2),
+                       omega11 = as.double(omega11),
+                       omega10 = as.double(omega10),
+                       omega21 = as.double(omega21),
+                       omega20sp = as.double(omega20sp),
+                       betay = as.double(betay),
+                       betaysp = as.double(betaysp),
+                       p = as.double(p),
+                       tau = as.double(tau),
+                       n = as.integer(n),
+                       xdim = as.integer(xdim),
+                       delta = as.double(dd),
+                       K = as.integer(K))$delta
+    }
     dd <- matrix(dd, n, 2)
 
-    lp1 <- beta1
+    if (model == 'int') {
+        lp1 <- beta1
+    } else if (model == 'slope') {
+        lp1 <- X %*% beta1
+    }
     mu11 <- dd[, 1] + lp1
     mu10 <- dd[, 1] - lp1
     mu21 <- dd[, 2] + betay * y[, 1]
@@ -85,7 +116,8 @@ LLBiMix <- function(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
 ##' @export
 QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                                 mcmc, prior, method = "DP",
-                                sampling = "whole"
+                                sampling = "whole",
+                                model = 'slope'
                                 ){
 
     ## data
@@ -135,7 +167,12 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
     ## using M-H sampling method
     gamma1save <- gamma2save <- matrix(0, nsave, xdim)
-    beta1save <- beta2spsave <- betaysave <- psave <- rep(0, nsave)
+    if (model == 'int') {
+        beta1save <- beta2spsave <- rep(0, nsave)
+    } else if (model == 'slope') {
+        beta1save <- beta2spsave <- matrix(0, nsave, xdim)
+    }
+    betaysave <- psave <- rep(0, nsave)
     musave <- sigmasave <- omegasave <- matrix(0, nsave, K)
     alphasave <- thetasave <- rep(0, nsave)
 
@@ -158,7 +195,8 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
     ## initial
     gamma1 <- coef(rq(y[, 1] ~ X[, -1], tau = tau))
-    beta1 <- beta2sp <- 0
+    if (model == 'int') beta1 <- beta2sp <- 0
+    if (model == 'slope') beta1 <- beta2sp <- rep(0, xdim)
     gamma2 <- coef(rq(y[R==1,2] ~ X[R==1, -1], tau = tau))
     mu <- rep(0, K)
     ## mu <- sort(mu, decreasing = TRUE)
@@ -190,19 +228,19 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 ########################################
 
     ## first
-    loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
+    loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2, model)
 
     ## roll
 
     for (iscan in 1:nscan) {
         ## update new parameters
-        loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
+        loglikeo <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2, model)
 
         att <- att + 1
 
         if (sampling == 'whole') {
             gamma1c <- rnorm(xdim, gamma1, tunegamma1)
-            beta1c <- rnorm(1, beta1, tunebeta1)
+            beta1c <- rnorm(length(beta1), beta1, tunebeta1)
             gamma2c <- rnorm(xdim, gamma2, tunegamma2)
             beta2spc <- beta2sp
             muc <- rnorm(K, mu, tunemu)
@@ -228,13 +266,13 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
             pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
 
             ## ll of candidate
-            loglikec <- LLBiMix(gamma1c, beta1c, gamma2c, beta2spc, muc, sigmac, muc, sigmac, omegac, omegac, omegac, omegac, betayc, 0, pc, tau, y, X, R, K, G1, G2)
+            loglikec <- LLBiMix(gamma1c, beta1c, gamma2c, beta2spc, muc, sigmac, muc, sigmac, omegac, omegac, omegac, omegac, betayc, 0, pc, tau, y, X, R, K, G1, G2, model)
 
             ## prior
             logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T)) +
-                dnorm(beta1c, betapm, betapv, log = T) +
+                sum(dnorm(beta1c, betapm, betapv, log = T)) +
                     sum(dnorm(gamma2c, gammapm, gammapv, log = T)) +
-                        dnorm(beta2spc, betapm, betapv, log = T) +
+                        sum(dnorm(beta2spc, betapm, betapv, log = T)) +
                             sum(dnorm(muc[-K], theta, sigmamu, log = T)) +
                                 sum(dgamma(sigmac^-1, sigmaa, rate = sigmab, log = T)) +
                                     sum(dbeta(zc[-K], 1, alpha, log = T)) +
@@ -242,9 +280,9 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                                             dbeta(pc, alpha1, alpha2, log = T)
 
             logprioro <- sum(dnorm(gamma1, gammapm, gammapv, log = T)) +
-                dnorm(beta1, betapm, betapv, log = T) +
+                sum(dnorm(beta1, betapm, betapv, log = T)) +
                     sum(dnorm(gamma2, gammapm, gammapv, log = T)) +
-                        dnorm(beta2sp, betapm, betapv, log = T) +
+                        sum(dnorm(beta2sp, betapm, betapv, log = T)) +
                             sum(dnorm(mu[-K], theta, sigmamu, log = T)) +
                                 sum(dgamma(sigma^-1 , sigmaa, scale = sigmab, log = T)) +
                                     sum(dbeta(z[-K], 1, alpha, log = T)) +
@@ -270,7 +308,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
             }
         } else if (sampling == 'element') {
             gamma1c <- rnorm(xdim, gamma1, tunegamma1)
-            loglikec <- LLBiMix(gamma1c, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
+            loglikec <- LLBiMix(gamma1c, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2, model)
             logpriorc <- sum(dnorm(gamma1c, gammapm, gammapv, log = T))
             logprioro <- sum(dnorm(gamma1, gammapm, gammapv, log = T))
             ratio <- loglikec + logpriorc - loglikeo - logprioro
@@ -280,10 +318,10 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
             }
 
             ## beta1
-            beta1c <- rnorm(1, beta1, tunebeta1)
-            loglikec <- LLBiMix(gamma1, beta1c, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
-            logpriorc <- dnorm(beta1c, betapm, betapv, log = T)
-            logprioro <- dnorm(beta1, betapm, betapv, log = T)
+            beta1c <- rnorm(length(beta1), beta1, tunebeta1)
+            loglikec <- LLBiMix(gamma1, beta1c, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2, model)
+            logpriorc <- sum(dnorm(beta1c, betapm, betapv, log = T))
+            logprioro <- sum(dnorm(beta1, betapm, betapv, log = T))
             ratio <- loglikec + logpriorc - loglikeo - logprioro
             if (log(runif(1)) <= ratio) {
                 loglikeo <- loglikec
@@ -292,7 +330,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
             ## gamma2
             gamma2c <- rnorm(xdim, gamma2, tunegamma2)
-            loglikec <- LLBiMix(gamma1, beta1, gamma2c, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
+            loglikec <- LLBiMix(gamma1, beta1, gamma2c, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2, model)
             logpriorc <- sum(dnorm(gamma2c, gammapm, gammapv, log = T))
             logprioro <- sum(dnorm(gamma2, gammapm, gammapv, log = T))
             ratio <- loglikec + logpriorc - loglikeo - logprioro
@@ -308,7 +346,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 muc <- rep(0, K)
             }
 
-            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, muc, sigma, muc, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
+            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, muc, sigma, muc, sigma, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2, model)
             logpriorc <- sum(dnorm(muc[-K], theta, sigmamu, log = T))
             logprioro <- sum(dnorm(mu[-K], theta, sigmamu, log = T))
             ratio <- loglikec + logpriorc - loglikeo - logprioro
@@ -319,7 +357,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
             ## sigma
             sigmac <- pmax(0.01, rnorm(K, sigma, tunesigma))
-            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigmac, mu, sigmac, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2)
+            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigmac, mu, sigmac, omega, omega, omega, omega, betay, 0, p, tau, y, X, R, K, G1, G2, model)
             logpriorc <- sum(dgamma(sigmac^-1, sigmaa, sigmab, log = T))
             logprioro <- sum(dgamma(sigma^-1, sigmaa, sigmab, log = T))
             ratio <- loglikec + logpriorc - loglikeo - logprioro
@@ -337,7 +375,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
             if (any(zc < 0) | any(zc > 1)) zc <- z
             omegac <- z2omega(zc)
 
-            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omegac, omegac, omegac, omegac, betay, 0, p, tau, y, X, R, K, G1, G2)
+            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omegac, omegac, omegac, omegac, betay, 0, p, tau, y, X, R, K, G1, G2, model)
             logpriorc <- sum(dbeta(zc[-K], 1, alpha, log = T))
             logprioro <- sum(dbeta(z[-K], 1, alpha, log = T))
             ratio <- loglikec + logpriorc - loglikeo - logprioro
@@ -349,7 +387,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
             ## betay
             betayc <- rnorm(1, betay, tunebetay)
-            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betayc, 0, p, tau, y, X, R, K, G1, G2)
+            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betayc, 0, p, tau, y, X, R, K, G1, G2, model)
             logpriorc <- dnorm(betayc, betapm, betapv, log = T)
             logprioro <- dnorm(betay, betapm, betapv, log = T)
             ratio <- loglikec + logpriorc - loglikeo - logprioro
@@ -360,7 +398,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
             ## p
             pc <- max(min(rnorm(1, p, tunep), 0.99), 0.01)
-            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, pc, tau, y, X, R, K, G1, G2)
+            loglikec <- LLBiMix(gamma1, beta1, gamma2, beta2sp, mu, sigma, mu, sigma, omega, omega, omega, omega, betay, 0, pc, tau, y, X, R, K, G1, G2, model)
             logpriorc <- dbeta(pc, alpha1, alpha2, log = T)
             logprioro <- dbeta(p, alpha1, alpha2, log = T)
             ratio <- loglikec + logpriorc - loglikeo - logprioro
@@ -371,10 +409,38 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 
         }
         ## update beta2sp separately
-        beta2sp <- rnorm(1, beta2pm, beta2pv)
+        beta2sp <- rnorm(length(beta2sp), beta2pm, beta2pv)
 
         ## Update G1, G2,
-        updateg1g2 <- .Fortran("updateg",
+        if (model == 'int')
+            updateg1g2 <- .Fortran("updateg",
+                               x = as.double(X),
+                               gamma1 = as.double(gamma1),
+                               beta1 = as.double(beta1),
+                               gamma2 = as.double(gamma2),
+                               beta2sp = as.double(beta2sp),
+                               mu1 = as.double(mu),
+                               sigma1 = as.double(sigma),
+                               mu2 = as.double(mu),
+                               sigma2 = as.double(sigma),
+                               omega11 = as.double(omega),
+                               omega10 = as.double(omega),
+                               omega21 = as.double(omega),
+                               omega20sp = as.double(omega),
+                               betay = as.double(betay),
+                               betaysp = as.double(0),
+                               p = as.double(pi),
+                               tau = as.double(tau),
+                               n = as.integer(n),
+                               xdim = as.integer(xdim),
+                               delta = as.double(dd),
+                               K = as.integer(K),
+                               y = as.double(y),
+                               r = as.integer(R),
+                               g1 = as.integer(G1),
+                               g2 = as.integer(G2))
+        if (model == 'slope')
+            updateg1g2 <- .Fortran("updategslope",
                                x = as.double(X),
                                gamma1 = as.double(gamma1),
                                beta1 = as.double(beta1),
@@ -435,9 +501,15 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 isave <- isave + 1
                 dispcount <- dispcount + 1
                 gamma1save[isave, ] <- gamma1
-                beta1save[isave] <- beta1
+                if (model == 'int') {
+                    beta1save[isave] <- beta1
+                    beta2spsave[isave] <- beta2sp
+                }
+                if (model == 'slope'){
+                    beta1save[isave, ] <- beta1
+                    beta2spsave[isave, ] <- beta2sp
+                }
                 gamma2save[isave, ] <- gamma2
-                beta2spsave[isave] <- beta2sp
                 betaysave[isave] <- betay
                 musave[isave,] <- mu
                 sigmasave[isave, ] <- sigma
@@ -472,6 +544,7 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
                 X = X,
                 R = R,
                 K = K,
+                model = model,
                 tau = tau,
                 tune = list(gamma1 = tunegamma1, beta1 = tunebeta1, sigma1 = tunesigma, p = tunep, gamma2 =tunegamma2, betay = tunebetay),
                 mcmc = mcmc
@@ -489,11 +562,18 @@ QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
 coef.QRMissingBiBayesMix <- function(mod, ...){
     nsave <- mod$mcmc$nsave
     nburn <- mod$mcmc$nburn
+    model <- mod$model
 
     gamma1 <- apply(mod$gamma1save, 2, mean)
-    beta1 <- mean(mod$beta1save)
     gamma2 <- apply(mod$gamma2save, 2, mean)
-    beta2sp <- mean(mod$beta2spsave)
+    if (model == 'int'){
+        beta1 <- mean(mod$beta1save)
+        beta2sp <- mean(mod$beta2spsave)
+    }
+    if (model == 'slope'){
+        beta1 <- apply(mod$beta1save, 2, mean)
+        beta2sp <- apply(mod$beta2spsave, 2, mean)
+    }
     betay <- mean(mod$betaysave)
     p <- mean(mod$psave)
     return(list(gamma1 = gamma1, beta1 = beta1, beta2sp = beta2sp,
