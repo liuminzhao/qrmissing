@@ -2,7 +2,7 @@
 \alias{ll2}
 \title{observed negative log likelihood}
 \usage{
-ll2(param, y, X, R, tau, sp)
+ll2(param, y, X, R, tau, sp, model)
 }
 \arguments{
   \item{param}{}

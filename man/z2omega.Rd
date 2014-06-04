@@ -11,10 +11,7 @@ z2omega(z)
 omega
 }
 \description{
-.. content for \description{} (no empty lines) ..
-}
-\details{
-.. content for \details{} ..
+convert z (0, 1) to omega (0,1) stick-breaking probs
 }
 \author{
 Minzhao Liu

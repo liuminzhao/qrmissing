@@ -13,10 +13,7 @@ confintQRMissingBiBayesMix(mod)
 confint
 }
 \description{
-.. content for \description{} (no empty lines) ..
-}
-\details{
-.. content for \details{} ..
+Credible interval for posterior samples
 }
 \author{
 Minzhao Liu

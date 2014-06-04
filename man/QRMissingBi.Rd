@@ -6,9 +6,9 @@
 \alias{summary.QRMissingBi}
 \title{Quantile Regression in the Presence of Monotone Missingness; Bivariates case}
 \usage{
-QRMissingBi(y, R, X, tau = 0.5, sp = NULL, init = NULL,
+QRMissingBi(formula, R, tau = 0.5, sp = NULL, init = NULL,
   method = "uobyqa", control = list(maxit = 1000, trace = 0),
-  hess = FALSE)
+  hess = FALSE, model = "slope")
 
 \method{coef}{QRMissingBi}(mod, ...)
 

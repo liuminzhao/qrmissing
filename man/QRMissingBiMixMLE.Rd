@@ -8,7 +8,7 @@
 \usage{
 QRMissingBiMixMLE(y, R, X, tau = 0.5, sp = NULL, init = NULL,
   method = "uobyqa", control = list(maxit = 1000, trace = 0),
-  hess = FALSE, K = 1)
+  hess = FALSE, K = 2, model = "slope")
 
 \method{coef}{QRMissingBiMixMLE}(mod, ...)
 

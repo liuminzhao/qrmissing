@@ -2,7 +2,7 @@
 \alias{ll2Mix}
 \title{observed negative log likelihood}
 \usage{
-ll2Mix(param, y, X, R, tau, sp, K)
+ll2Mix(param, y, X, R, tau, sp, K, model)
 }
 \arguments{
   \item{param}{}

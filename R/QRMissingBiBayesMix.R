@@ -581,9 +581,9 @@ coef.QRMissingBiBayesMix <- function(mod, ...){
 }
 
 
-##' .. content for \description{} (no empty lines) ..
+##' Credible interval for posterior samples
 ##'
-##' .. content for \details{} ..
+##'
 ##' @title Confint function
 ##' @param mod
 ##' @param ...
@@ -638,9 +638,9 @@ plot.QRMissingBiBayesMix <- function(mod, full = FALSE, ...){
     }
 
 }
-##' .. content for \description{} (no empty lines) ..
+##' convert z (0, 1) to omega (0,1) stick-breaking probs
 ##'
-##' .. content for \details{} ..
+##'
 ##' @title convert z to omega
 ##' @param z
 ##' @return omega
