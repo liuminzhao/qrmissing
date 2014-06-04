@@ -28,7 +28,8 @@
 QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
                         init = NULL, method = 'uobyqa',
                         control = list(maxit = 1000,
-                            trace = 0), hess = FALSE){
+                            trace = 0), hess = FALSE,
+                        model = 'slope'){
     ## data
     n <- dim(y)[1]
     num <- sum(R)
@@ -36,22 +37,33 @@ QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
 
     ## initial
     if (is.null(sp)) {
-        sp <- 0 # beta2sp
+        if (model == 'int'){
+            sp <- 0 # beta2sp
+        } else if (model == 'slope'){
+            sp <- rep(0, xdim)
+        }
     }
     if (!is.null(init)){
         param <- init
     } else {
         lmcoef1 <- coef(rq(y[,1] ~ X[,-1], tau = tau))
         lmcoef2 <- coef(rq(y[,2][R == 1] ~ X[R == 1,-1], tau = tau))
-        param <- rep(0, 2*xdim + 5)
-        param[1:xdim] <- lmcoef1
-        param[(xdim + 1):(2*xdim)] <- lmcoef2
-        param[2*xdim + 5] = qlogis(num/n)
+        if (model == 'slope') {
+            param <- rep(0, 3*xdim + 4)
+            param[1:xdim] <- lmcoef1
+            param[(xdim + 1):(2*xdim)] <- lmcoef2
+            param[3*xdim + 4] = qlogis(num/n)
+        } else if (model == 'int') {
+            param <- rep(0, 2*xdim + 5)
+            param[1:xdim] <- lmcoef1
+            param[(xdim + 1):(2*xdim)] <- lmcoef2
+            param[2*xdim + 5] = qlogis(num/n)
+        }
     }
 
     ## nll
     nll <- function(param){
-        ll2(param, y, X, R, tau, sp)
+        ll2(param, y, X, R, tau, sp, model)
     }
 
     ## optimize nll to get MLE
@@ -71,8 +83,8 @@ QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
     }
 
     ## residuals
-    res <- residuals(mod$par, y, X, R, tau, sp)
-    ## res <- NULL
+    ## res <- residuals(mod$par, y, X, R, tau, sp)
+    res <- NULL
 
     ## Hessian matrix and grad
     if (hess) {
@@ -98,6 +110,7 @@ QRMissingBi <- function(y, R, X, tau = 0.5, sp = NULL,
     mod$Hessian <- Hessian
     mod$se <- se
     mod$res <- res
+    mod$model <- model
 
     class(mod) <- "QRMissingBi"
 
@@ -139,6 +152,7 @@ summary.QRMissingBi <- function(mod, ...){
     cat('Estimated pi:', plogis(param[2*q + 5]), '\n')
     cat('Quantile: ', tau, '\n')
     cat('Optimization method: ', mod$method, '\n')
+    cat('Model method: ', mod$model, '\n')
     optim_method <- c('BFGS', 'CG', 'L-BFGS-B', 'Nelder-Mead')
 
     if (mod$method %in% optim_method) {
@@ -185,44 +199,78 @@ plot.QRMissingBi <- function(mod, ...){
 ##' @useDynLib qrmissing
 ##' @author Minzhao Liu
 ##' @export
-ll2 <- function(param, y, X, R, tau, sp){
+ll2 <- function(param, y, X, R, tau, sp, model){
     n <- dim(y)[1]
     xdim <- dim(X)[2]
     num <- sum(R)
 
-    gamma1 <- param[1:xdim]
-    gamma2 <- param[(xdim + 1):(2*xdim)]
-    beta1 <- param[2*xdim + 1]
-    sigma1 <- exp(param[2*xdim + 2])
-    betay <- param[2*xdim + 3] # for R = 1
-    sigma21 <- exp(param[2*xdim + 4])
-    p <- exp(param[2*xdim + 5])/(1 + exp(param[2*xdim + 5]))
+    if (model == 'int') {
+        gamma1 <- param[1:xdim]
+        gamma2 <- param[(xdim + 1):(2*xdim)]
+        beta1 <- param[2*xdim + 1]
+        sigma1 <- exp(param[2*xdim + 2])
+        betay <- param[2*xdim + 3] # for R = 1
+        sigma21 <- exp(param[2*xdim + 4])
+        p <- exp(param[2*xdim + 5])/(1 + exp(param[2*xdim + 5]))
+    } else if (model == 'slope') {
+        gamma1 <- param[1:xdim]
+        gamma2 <- param[(xdim + 1):(2*xdim)]
+        beta1 <- param[(2*xdim + 1):(3*xdim)]
+        sigma1 <- exp(param[3*xdim + 1])
+        betay <- param[3*xdim + 2]
+        sigma21 <- exp(param[3*xdim + 3])
+        p <- plogis(param[3*xdim + 4])
+    }
 
     beta2sp <- sp # SP for R = 0
     sigma21sp <- 0  # SP for R = 0
     betaysp <- 0 # SP for R = 0
 
     d <- matrix(0, n, 2)
-    d <- .Fortran("mydelta2bise",
-                  x = as.double(X),
-                  gamma1 = as.double(gamma1),
-                  beta1 = as.double(beta1),
-                  sigma1 = as.double(sigma1),
-                  gamma2 = as.double(gamma2),
-                  beta2sp = as.double(beta2sp),
-                  sigma21 = as.double(sigma21),
-                  sigma21sp = as.double(sigma21sp),
-                  betay = as.double(betay),
-                  betaysp = as.double(betaysp),
-                  p = as.double(p),
-                  tau = as.double(tau),
-                  n = as.integer(n),
-                  xdim = as.integer(xdim),
-                  delta = as.double(d))$delta
+
+    if (model == 'int') {
+        d <- .Fortran("mydelta2bise",
+                      x = as.double(X),
+                      gamma1 = as.double(gamma1),
+                      beta1 = as.double(beta1),
+                      sigma1 = as.double(sigma1),
+                      gamma2 = as.double(gamma2),
+                      beta2sp = as.double(beta2sp),
+                      sigma21 = as.double(sigma21),
+                      sigma21sp = as.double(sigma21sp),
+                      betay = as.double(betay),
+                      betaysp = as.double(betaysp),
+                      p = as.double(p),
+                      tau = as.double(tau),
+                      n = as.integer(n),
+                      xdim = as.integer(xdim),
+                      delta = as.double(d))$delta
+    } else if (model == 'slope') {
+        d <- .Fortran("mydelta2biseslope",
+                      x = as.double(X),
+                      gamma1 = as.double(gamma1),
+                      beta1 = as.double(beta1),
+                      sigma1 = as.double(sigma1),
+                      gamma2 = as.double(gamma2),
+                      beta2sp = as.double(beta2sp),
+                      sigma21 = as.double(sigma21),
+                      sigma21sp = as.double(sigma21sp),
+                      betay = as.double(betay),
+                      betaysp = as.double(betaysp),
+                      p = as.double(p),
+                      tau = as.double(tau),
+                      n = as.integer(n),
+                      xdim = as.integer(xdim),
+                      delta = as.double(d))$delta
+    }
 
     d <- matrix(d, n, 2)
 
-    lp1 <- beta1
+    if (model == 'int') {
+        lp1 <- beta1
+    } else if (model == 'slope') {
+        lp1 <- X %*% beta1
+    }
     mu11 <- d[, 1] + lp1
     mu10 <- d[, 1] - lp1
     mu21 <- d[, 2] + betay * y[, 1]
