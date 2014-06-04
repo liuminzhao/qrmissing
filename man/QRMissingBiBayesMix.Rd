@@ -5,7 +5,7 @@
 \alias{summary.QRMissingBiBayesMix}
 \title{Quantile Regression in the Presence of Monotone Missingness; Bivariate case}
 \usage{
-QRMissingBiBayesMix(y, R, X, tau = 0.5, mcmc, prior, method = "DP",
+QRMissingBiBayesMix(formula, R, tau = 0.5, mcmc, prior, method = "DP",
   sampling = "whole", model = "slope")
 
 \method{coef}{QRMissingBiBayesMix}(mod, ...)

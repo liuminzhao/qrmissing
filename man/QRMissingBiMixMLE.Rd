@@ -6,7 +6,7 @@
 \alias{summary.QRMissingBiMixMLE}
 \title{Quantile Regression in the Presence of Monotone Missingness; Bivariates case}
 \usage{
-QRMissingBiMixMLE(y, R, X, tau = 0.5, sp = NULL, init = NULL,
+QRMissingBiMixMLE(formula, R, tau = 0.5, sp = NULL, init = NULL,
   method = "uobyqa", control = list(maxit = 1000, trace = 0),
   hess = FALSE, K = 2, model = "slope")
 

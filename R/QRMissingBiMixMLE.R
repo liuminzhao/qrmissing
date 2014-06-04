@@ -25,12 +25,17 @@
 ##' generic functions are available.
 ##' @author Minzhao Liu, Mike Daniels
 ##' @export
-QRMissingBiMixMLE <- function(y, R, X, tau = 0.5, sp = NULL,
+QRMissingBiMixMLE <- function(formula, R, tau = 0.5, sp = NULL,
                               init = NULL, method = 'uobyqa',
                               control = list(maxit = 1000,
                                   trace = 0), hess = FALSE,
                               K = 2,
                               model = 'slope'){
+    ## convert formula
+    modfor <- model.frame(formula)
+    y <- model.response(modfor, "numeric")
+    X <- model.matrix(modfor)
+
     ## data
     n <- dim(y)[1]
     num <- sum(R)

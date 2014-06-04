@@ -114,11 +114,15 @@ LLBiMix <- function(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
 ##' generic functions are available.
 ##' @author Minzhao Liu, Mike Daniels
 ##' @export
-QRMissingBiBayesMix <- function(y, R, X, tau = 0.5,
+QRMissingBiBayesMix <- function(formula, R, tau = 0.5,
                                 mcmc, prior, method = "DP",
                                 sampling = "whole",
                                 model = 'slope'
                                 ){
+    ## convert formula
+    modfor <- model.frame(formula)
+    y <- model.response(modfor, "numeric")
+    X <- model.matrix(modfor)
 
     ## data
     n <- dim(y)[1]
