@@ -111,6 +111,10 @@ QRMissingBiMixMLE <- function(formula, R, tau = 0.5, sp = NULL,
         se <- NULL
     }
 
+    ## BIC
+    newparam <- mod$par
+    BIC <- 2 * ll2Mix(newparam, y, X, R, tau, sp, K, model) + log(n) * length(param)
+
     mod$n <- n
     mod$xdim <- xdim
     mod$X <- X
@@ -123,6 +127,7 @@ QRMissingBiMixMLE <- function(formula, R, tau = 0.5, sp = NULL,
     mod$res <- res
     mod$K <- K
     mod$model <- model
+    mod$BIC <- BIC
 
     class(mod) <- "QRMissingBiMixMLE"
 

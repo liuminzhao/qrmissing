@@ -106,6 +106,9 @@ QRMissingBi <- function(formula, R, tau = 0.5, sp = NULL,
         se <- NULL
     }
 
+    ## BIC
+    BIC <- 2 * ll2(mod$par, y, X, R, tau, sp, model) + log(n) * length(param)
+
     mod$n <- n
     mod$xdim <- xdim
     mod$X <- X
@@ -117,6 +120,7 @@ QRMissingBi <- function(formula, R, tau = 0.5, sp = NULL,
     mod$se <- se
     mod$res <- res
     mod$model <- model
+    mod$BIC <- BIC
 
     class(mod) <- "QRMissingBi"
 
