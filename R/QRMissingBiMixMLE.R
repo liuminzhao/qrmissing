@@ -30,11 +30,15 @@ QRMissingBiMixMLE <- function(formula, R, tau = 0.5, sp = NULL,
                               control = list(maxit = 1000,
                                   trace = 0), hess = FALSE,
                               K = 2,
-                              model = 'slope'){
+                              model = 'slope', data = NULL){
+
+    ## keep missing
+    options(na.action='na.pass')
     ## convert formula
-    modfor <- model.frame(formula)
-    y <- model.response(modfor, "numeric")
-    X <- model.matrix(modfor)
+
+    modfor <- model.frame(formula, data = data)
+    y <- model.response(modfor)
+    X <- model.matrix(formula, data = data)
 
     ## data
     n <- dim(y)[1]

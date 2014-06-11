@@ -117,12 +117,16 @@ LLBiMix <- function(gamma1, beta1, gamma2, beta2sp, mu1, sigma1,
 QRMissingBiBayesMix <- function(formula, R, tau = 0.5,
                                 mcmc, prior, method = "DP",
                                 sampling = "whole",
-                                model = 'slope'
+                                model = 'slope', data = NULL
                                 ){
+
+    ## keep missing
+    options(na.action='na.pass')
     ## convert formula
-    modfor <- model.frame(formula)
-    y <- model.response(modfor, "numeric")
-    X <- model.matrix(modfor)
+
+    modfor <- model.frame(formula, data = data)
+    y <- model.response(modfor)
+    X <- model.matrix(formula, data = data)
 
     ## data
     n <- dim(y)[1]

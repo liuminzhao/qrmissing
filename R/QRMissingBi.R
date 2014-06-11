@@ -29,12 +29,15 @@ QRMissingBi <- function(formula, R, tau = 0.5, sp = NULL,
                         init = NULL, method = 'uobyqa',
                         control = list(maxit = 1000,
                             trace = 0), hess = FALSE,
-                        model = 'slope'){
+                        model = 'slope', data = NULL){
 
+    ## keep missing
+    options(na.action='na.pass')
     ## convert formula
-    modfor <- model.frame(formula)
-    y <- model.response(modfor, "numeric")
-    X <- model.matrix(modfor)
+
+    modfor <- model.frame(formula, data = data)
+    y <- model.response(modfor)
+    X <- model.matrix(formula, data = data)
 
     ## data
     n <- dim(y)[1]
