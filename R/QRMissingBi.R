@@ -138,8 +138,9 @@ coef.QRMissingBi <- function(mod, ...){
     q <- mod$xdim
     param <- mod$par[c(1:(q*2))]
     coef <- matrix(param, 2, q, byrow = T)
-    rownames(coef) <- c('Q1Coef', 'Q2Coef')
-    return(coef)
+    gamma1 <- coef[1, ]
+    gamma2 <- coef[2, ]
+    return(list(gamma1 = gamma1, gamma2 = gamma2))
 }
 
 ##' @rdname QRMissingBi
