@@ -82,7 +82,7 @@ C------------------------------
       real*8 betay, betay0, betaysp, p, tau, x(xdim), d1
       real*8 p1, p2, pnrm
       real*8 a, b, fa, fb, c, fc, tol, prevstep, newstep
-      real*8 targetbimixmnar, myzero2mixmnar
+      real*8 targetbimixmnar
       logical success
       real*8 dx, t1, cb, t2, pp, q
       integer maxit
