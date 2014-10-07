@@ -36,7 +36,6 @@ C------------------------------
       real*8 delta1, gamma1(xdim), beta1, sigma1, p,
      &     tau, x(xdim)
       real*8 targeteqn1f
-      real*8 myzero1
 
       real*8 a, b, fa, fb, c, fc, tol, prevstep, newstep
       logical success
@@ -105,7 +104,6 @@ C------------------------------
       real*8 delta1, gamma1(xdim), beta1, sigma1, p,
      &     tau, x(xdim)
       real*8 targeteqn1f
-      real*8 myzeroin1
 
       real*8 a, b, fa, fb, c, fc, tol, prevstep, newstep
       logical success
@@ -541,7 +539,6 @@ C------------------------------
       real*8 delta1, gamma1(xdim), beta1, mu(G), sigma(G),
      &     omega1(G), omega0(G), p, tau, x(xdim)
       real*8 targetunimix
-      real*8 myzero1mix
 
       real*8 a, b, fa, fb, c, fc, tol, prevstep, newstep
       logical success
@@ -611,7 +608,7 @@ C------------------------------
      &     omega1, omega0, p,tau, n, xdim, delta)
       implicit none
       integer xdim, n, G
-      real*8 x(n, xdim), gamma(xdim), beta(1),sigma(G), mu(G)
+      real*8 x(n, xdim), gamma(xdim), beta,sigma(G), mu(G)
       real*8 p, tau, delta(n), omega1(G), omega0(G)
       real*8 myzero1mix
       integer i
