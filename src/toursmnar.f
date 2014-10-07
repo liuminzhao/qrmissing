@@ -11,7 +11,6 @@ C------------------------------
       real*8 betay, betay0, betaysp, p, tau, x(xdim), d1
       real*8 myzeroin1
       real*8 p1, p2, pnrm
-      real*8 targeteqn2fmnar
 
       sigma20 = sigma21 * exp(sigma21sp)
       betay0 = 1
