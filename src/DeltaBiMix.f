@@ -94,7 +94,7 @@ C------------------------------
       real*8 betay, betay0, betaysp, p, tau, x(xdim), d1
       real*8 p1, p2, pnrm
       real*8 a, b, fa, fb, c, fc, tol, prevstep, newstep
-      real*8 targetbimix, myzero2mix
+      real*8 targetbimix
       logical success
       real*8 dx, t1, cb, t2, pp, q
       integer maxit
@@ -202,7 +202,6 @@ C------------------------------
       integer function rcat(prob, n)
 
       integer n, i
-      integer rcat
       real*8 myrunif, tmp, ans, prob(n)
 
       call rndstart()
